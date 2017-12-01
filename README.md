@@ -1,9 +1,28 @@
-Set of scripts to compile the data collected at FishIsland in 2017
+General workflow
+
+1) Calculate Fluxes
+    - Done in Eddy Pro
+    
+2) Parse Soil Data
+
+3) Combine & Post Process
+    - Combine Soil Data, Climate Data, & Flux Data
+    - Filter
+        * Precip, QA/QC, etc.
+    - Fill Climate Data w/ linear interpolation
+
+4) Footprint Analysis
+    - Get BL Obs
+    - Calculate Flux Footprints
+    
+5) ML Analysis
+    - Bayseian optimisation of full model
+    - Factor Selection
+    - Gap Filling
+    
+6) Chanber Data Analysis
+
+7) Plotting etc.
 
 
-General Workflow:
-1) Merge Flux Datasets (10 Hz Clean Data, 10 Hz data when power was low & 7200/7700 weren't working, 1 Hz Data from beginning of campaign)
 
-2) Merge Soil Data (Compiled from 3 sepreate data files in soil data script) and Climate Data w/ Flux Data
-
-3) Filter for Preip, low u*, etc..
