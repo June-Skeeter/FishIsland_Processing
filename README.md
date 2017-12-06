@@ -23,6 +23,6 @@ General workflow
 6) Chanber Data Analysis
 
 7) Plotting etc.
-
+    - Trying to do some cool stuf with Plotly!
 
 
