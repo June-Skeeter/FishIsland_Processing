@@ -120,15 +120,15 @@ def Intro_Map(ax,Major_font,Minor_font,clipped = True):
     # spots.plot(color=Red,ax=ax1,marker = '*',markersize = 400,label = 'Study Site')
     cmap = LinearSegmentedColormap.from_list('mycmap', [(0, 'blue'), (1, 'green')])
     # spots.plot(column='Site',cmap=cmap,ax=ax1,marker = '*',markersize = 400,legend = True)
-    ax1.scatter(spots.iloc[0]['X'],spots.iloc[0]['Y'],label=spots.iloc[0]['Site'],s=120,marker='*',color='red')
-    ax1.scatter(spots.iloc[1]['X'],spots.iloc[1]['Y'],label=spots.iloc[1]['Site'],s=120,marker='*',color='blue')
+    ax1.scatter(spots.iloc[0]['X'],spots.iloc[0]['Y'],label=spots.iloc[0]['Site'],s=140,marker='*',color='red')
+    ax1.scatter(spots.iloc[1]['X'],spots.iloc[1]['Y'],label=spots.iloc[1]['Site'],s=140,marker='*',color='blue')
 
     ax1.set_facecolor(Water)
     ## Get Natural aspect ratio
     ar,xl,yl = PT.Get_Aspect_Ratio(ax1)
     TreeLine.plot(ax=ax1,color = Green,linewidth=4,label='Tree\nLine')
 
-    Xc = -1.775e6
+    Xc = -1.8e6
     Yc = 3.875e6
     Ydist = 3.7e5
     Xdist = Ydist*ar1

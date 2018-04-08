@@ -67,7 +67,8 @@ class Results:
 		self.Daily['CO2eq'] = self.Daily['Fco2']+self.Daily['Fch4']*28*1e-3
 
 
-		replace = {'PPFD':'PPFD','air pressure':'P$_a$','Active Layer':'Thaw Dpth','Water Table':'Wtr Tbl','Ta':'T$_a$','Ts 15 cm':'T$_s$ 15cm','Ts 2.5 cm':'T$_s$ 2.5cm','VWC':'VWC','Wind Spd':'Wind Spd','Rain':'Rain'}
+		replace = {'PPFD':'PPFD','air pressure':'P$_a$','Active Layer':'Thaw Dpth','Water Table':'Wtr Tbl',
+		'Ta':'T$_a$','Ts 15 cm':'T$_s$ 15cm','Ts 2.5 cm':'T$_s$ 2.5cm','VWC':'SWC','Wind Spd':'Wind Spd','Rain':'Rain'}
 		self.Summary_CH4 = pd.read_csv(SummaryPath_CH4,index_col=0)
 		self.Summary_CH4['NewVar']=''
 		self.Summary_CH4['Model Name']=''
@@ -118,7 +119,7 @@ class Results:
 		ax2.plot(self.Daily['Water Table'],color = DarkBlue,label = 'Water Table Depth',linewidth=MajorLine)
 		
 		self.allfmt(ax1)
-		self.allfmt(ax2)
+		self.allfmt(ax2,loc=5)
 
 		ax1.set_title('Daily Air and Peat Temperatures', fontsize=self.MajorFont)
 		ax1.set_ylabel('$\circ C$',fontsize=self.MinorFont)
@@ -132,10 +133,10 @@ class Results:
 
 	def Four_Plots(self,ax,D3 = False):
 		size = [.37,.37]
-		rect1 = [0.055,.575,size[0],size[1]]
-		rect2 = [0.555,.575,size[0],size[1]]
-		rect3 = [0.055,.075,size[0],size[1]]
-		rect4 = [0.555,.075,size[0],size[1]]
+		rect1 = [0.055,.555,size[0],size[1]]
+		rect2 = [0.555,.555,size[0],size[1]]
+		rect3 = [0.055,.055,size[0],size[1]]
+		rect4 = [0.555,.055,size[0],size[1]]
 		ax1 = pt.add_subplot_axes(ax,rect1)
 		ax2 = pt.add_subplot_axes(ax,rect2)
 		if D3 == True:
@@ -162,8 +163,8 @@ class Results:
 		for i,mo in enumerate(self.Daily.Month.unique()):
 			Subset = self.Data[self.Data.Month == mo].copy()
 			ax1.plot(Subset['Ta'],Subset['ER'],color=Colors[i], label=Labels[i],linewidth = 5)
-			if i == 3:
-				Labels[3]+='*'
+			# if i == 3:
+			# 	Labels[3]+='*'
 			Subset.sort_values(by = 'GPP',inplace=True)
 			ax3.plot(Subset['PPFD'],Subset['GPP'],color = Colors[i],label=Labels[i],linewidth = 5)
 			Subset.sort_values(by='ER',inplace=True)
@@ -174,7 +175,7 @@ class Results:
 		Score = self.Data[['fco2','NEE']].dropna()
 		LR = stats.linregress(Score['fco2'],Score['NEE'])
 		Line = LR[0]*Score['fco2']+LR[1]
-		ax4.scatter(Score['fco2'],Score['NEE'],color = LightGreen,label=None,s=ScatterSize)
+		ax4.scatter(Score['fco2'],Score['NEE'],color = LightGreen,label=None,s=ScatterSize,edgecolor='black',linewidth = .5)
 		ax4.plot(Score['fco2'],Line,label = '$r^2$: '+str(np.round(LR[2]**2,2)),linewidth=MajorLine,color=DarkGreen)
 
 		self.allfmt(ax1,loc=1)
@@ -190,6 +191,9 @@ class Results:
 		ax2.set_title('Flux Chamber ER',fontsize=self.MajorFont)
 		ax2.set_ylabel(umolCO2,fontsize=self.MinorFont)
 		ax2.set_xticklabels(self.Box_label,fontsize=self.MinorFont,rotation=15)
+		# plt.sca(ax2)
+		ax1.set_ylim(0,2.2)
+		ax2.set_ylim(0,2.2)
 
 		ax3.set_title('GPP vs. PPFD',fontsize=self.MajorFont)
 		ax3.set_ylabel(umolCO2,fontsize=self.MinorFont)
@@ -206,77 +210,167 @@ class Results:
 		ax1.set_xticks(np.arange(1,11))
 		ax1.set_xlabel('Model Size',fontsize=self.MinorFont)
 
-		rect = [0.95,.65,.01,.25]
+		ax2.set_title('C: Norm A',fontsize=self.MajorFont)
+		rect = [0.93,.65,.01,.25]
 		cbax1 = pt.add_subplot_axes(ax,rect)
-		self.fig.colorbar(cbobj1,cax=cbax1)
+		cb = self.fig.colorbar(cbobj1,cax=cbax1)
+		cb.set_label('Normalized Difference',fontsize=self.MinorFont)
 
-		rect = [0.45,.15,.01,.25]
+		ax3.set_title('E: Norm C',fontsize=self.MajorFont)
+		rect = [0.43,.15,.01,.25]
 		cbax2 = pt.add_subplot_axes(ax,rect)
-		self.fig.colorbar(cbobj2,cax=cbax2)
+		# cbax2.set_ylabel('Normalized Difference',fontsize=self.MinorFont)
+		cb = self.fig.colorbar(cbobj2,cax=cbax2)
+		cb.set_label('Normalized Difference',fontsize=self.MinorFont)
 
 		ax4.set_title('Best Model Performace',fontsize=self.MajorFont)
 
 		self.allfmt(ax1)
-		self.allfmt(ax2)
+		self.allfmt(ax2,legend=False)
 		self.allfmt(ax3,legend=False)
-		self.allfmt(ax4)
+		self.allfmt(ax4,loc=4)
 
 		if Var == 'co2':
 			ax1.set_ylim(0.05,0.3)
-			ax2.set_title('$F_{CH_4}$ vs. PPFD',fontsize=self.MajorFont)
+			ax4.set_xlabel('Observed'+umolCO2,fontsize=self.MinorFont)
+			ax4.set_ylabel('Modeled'+umolCO2,fontsize=self.MinorFont)
 		else:
-			ax1.set_ylim(0.26,0.84)
-			ax2.set_title('$F_{CH_4}$ vs. PPFD',fontsize=self.MajorFont)
+			ax1.set_ylim(0.24,0.84)
+			ax4.set_xlabel('Observed'+nmolCH4,fontsize=self.MinorFont)
+			ax4.set_ylabel('Modeled'+nmolCH4,fontsize=self.MinorFont)
+
+	def BestML(self,ax):
+		ax1,ax2,ax3,ax4 = self.Four_Plots(ax)
+
+		# self.BestCO2 = self.Summary_CO2.loc[self.Summary_CO2['MSE']==self.Summary_CO2['MSE'].min()]
+		# BM = self.BestCO2['Models'].values[0]
+		self.BMCO2 = 'Model: Wind Spd+Ta+PPFD+VWC+Active Layer'
+		self.BMCH4 = 'Model: Wind Spd+air pressure+PPFD+Active Layer+Water Table'
+
+		ax1.bar(self.Summary_CO2.index,self.Summary_CO2['MSE'],color = DarkGreen)
+		ax1.errorbar(self.Summary_CO2.index,self.Summary_CO2['MSE'],self.Summary_CO2['CI'],fmt = 'o',color='black',label = '95% CI')
+		ax1.annotate('Most Parsimonious Model', xy=(5, .18), xytext=(5.5, .25),
+            arrowprops=dict(facecolor='black', shrink=0.05),horizontalalignment='center',fontsize=self.MinorFont-2)
+		y_co2 = .055
+		for index,row in self.Summary_CO2.iterrows():
+			if index > 1:
+				ax1.text(index,y_co2,row['Model Name']+') '+lastModel+'+'+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
+			else:
+				ax1.text(index,y_co2,row['Model Name']+') '+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
+			lastModel = row['Model Name']
+
+
+		ax2.bar(self.Summary_CH4.index,self.Summary_CH4['MSE'],color = DarkRed)
+		ax2.errorbar(self.Summary_CH4.index,self.Summary_CH4['MSE'],self.Summary_CH4['CI'],fmt = 'o',
+			color='black',label = '95% CI')
+		ax2.annotate("Most Parsimonious Model",
+		 xy=(5, .59), xytext=(6.1, .68),arrowprops=dict(facecolor='black', shrink=0.05),horizontalalignment='center',fontsize=self.MinorFont)
+		y_ch4 = .25
+		for index,row in self.Summary_CH4.iterrows():
+			if index > 1:
+				ax2.text(index,y_ch4,row['Model Name']+') '+lastModel+'+'+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
+			else:
+				ax2.text(index,y_ch4,row['Model Name']+') '+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
+			lastModel = row['Model Name']
+
+		Score = self.Filled_CO2[['fco2',self.BMCO2]].dropna()
+		LR = stats.linregress(Score['fco2'].values,Score[self.BMCO2].values)
+		Line = LR[0]*Score['fco2']+LR[1]
+		ax3.plot(self.Filled_CO2['fco2'],self.Filled_CO2['fco2'],label='1:1',color='black',linewidth=MinorLine)
+		ax3.scatter(self.Filled_CO2['fco2'],self.Filled_CO2[self.BMCO2],label=None,color=LightGreen,s=ScatterSize,edgecolor='black',linewidth = .5)
+		ax3.plot(Score['fco2'],Line,color = DarkGreen,label='$r^2$: '+str(np.round(LR[2]**2,2)),linewidth=MajorLine)
+
+		Score = self.Filled_CH4[['fch4',self.BMCH4]].dropna()
+		LR = stats.linregress(Score['fch4'].values,Score[self.BMCH4].values)
+		Line = LR[0]*Score['fch4']+LR[1]
+		ax4.plot(self.Filled_CH4['fch4'],self.Filled_CH4['fch4'],label='1:1',color='black',linewidth=MinorLine)
+		ax4.scatter(self.Filled_CH4['fch4'],self.Filled_CH4[self.BMCH4],label=None,color=LightRed,s=ScatterSize,edgecolor='black',linewidth = .5)
+		ax4.plot(Score['fch4'],Line,color = DarkRed,label='$r^2$: '+str(np.round(LR[2]**2,2)),linewidth=MajorLine)
+
+
+		ax1.set_ylim(0.05,0.3)
+		ax3.set_xlabel('Observed'+umolCO2,fontsize=self.MinorFont)
+		ax3.set_ylabel('Modeled'+umolCO2,fontsize=self.MinorFont)
+		ax3.set_title('Best Model Performace',fontsize=self.MajorFont)
+
+		ax2.set_ylim(0.24,0.84)
+		ax4.set_xlabel('Observed'+nmolCH4,fontsize=self.MinorFont)
+		ax4.set_ylabel('Modeled'+nmolCH4,fontsize=self.MinorFont)
+		ax4.set_title('Best Model Performace',fontsize=self.MajorFont)
+
+
+		ax1.set_title('Relative Model Performace',fontsize=self.MajorFont)
+		ax1.set_ylabel('Normalized MSE',fontsize = self.MinorFont)
+		ax1.set_xticks(np.arange(1,11))
+		ax1.set_xlabel('Model Size',fontsize=self.MinorFont)
+
+
+		ax2.set_title('Relative Model Performace',fontsize=self.MajorFont)
+		ax2.set_ylabel('Normalized MSE',fontsize = self.MinorFont)
+		ax2.set_xticks(np.arange(1,11))
+		ax2.set_xlabel('Model Size',fontsize=self.MinorFont)
+
+		self.allfmt(ax1)
+		self.allfmt(ax2)
+		self.allfmt(ax3,loc=4)
+		self.allfmt(ax4,loc=4)
 
 	def Normalize(self,a,b,Data,Name):
 		c = np.abs(Data[[a,b]].min().values.min())+1
 		Data[[a,b]]+=c
-		Data[Name] = (Data[b] - Data[a])/(Data[b] + Data[a])
+		# Data[Name] = (Data[b] - Data[a])/(Data[b] + Data[a])
+		Data[Name] = Data[b]-Data[a]
 		return(Data[Name])
 
-
 	def CO2(self,ax,fig):
-		self.fig = fig
-		ax1,ax2,ax3,ax4 = self.Four_Plots(ax)
+		# self.fig = fig
+		# ax1,ax2,ax3,ax4 = self.Four_Plots(ax)
 
-		Best_Model = self.Summary_CO2.loc[self.Summary_CO2['MSE']==self.Summary_CO2['MSE'].min()]
-		BM = Best_Model['Models'].values[0]
-		BM = 'Model: Wind Spd+Ta+PPFD+VWC+Active Layer'
+		# Best_Model = self.Summary_CO2.loc[self.Summary_CO2['MSE']==self.Summary_CO2['MSE'].min()]
+		# BM = Best_Model['Models'].values[0]
+		# BM = 'Model: Wind Spd+Ta+PPFD+VWC+Active Layer'
 
-		ax1.bar(self.Summary_CO2.index,self.Summary_CO2['MSE'],color = DarkGreen)
-		ax1.errorbar(self.Summary_CO2.index,self.Summary_CO2['MSE'],self.Summary_CO2['CI'],fmt = 'o',
-			color='black',label = '95% CI')
-		ax1.annotate('Most Parsimonious Model', xy=(5, .18), xytext=(5.5, .25),
-            arrowprops=dict(facecolor='black', shrink=0.05),horizontalalignment='center',fontsize=self.MinorFont-2)
+		# ax1.bar(self.Summary_CO2.index,self.Summary_CO2['MSE'],color = DarkGreen)
+		# ax1.errorbar(self.Summary_CO2.index,self.Summary_CO2['MSE'],self.Summary_CO2['CI'],fmt = 'o',
+		# 	color='black',label = '95% CI')
+		# ax1.annotate('Most Parsimonious Model', xy=(5, .18), xytext=(5.5, .25),
+  #           arrowprops=dict(facecolor='black', shrink=0.05),horizontalalignment='center',fontsize=self.MinorFont-2)
 
-		y = .055
-		for index,row in self.Summary_CO2.iterrows():
-			if index > 1:
-				ax1.text(index,y,row['Model Name']+') '+lastModel+'+'+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
-			else:
-				ax1.text(index,y,row['Model Name']+') '+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
-			lastModel = row['Model Name']
+		# y = .055
+		# for index,row in self.Summary_CO2.iterrows():
+		# 	if index > 1:
+		# 		ax1.text(index,y,row['Model Name']+') '+lastModel+'+'+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
+		# 	else:
+		# 		ax1.text(index,y,row['Model Name']+') '+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
+		# 	lastModel = row['Model Name']
 
 
-		a,b,Name='Model: PPFD','Model: Ta+PPFD+Active Layer','Normed_3_1'
+		a,b,Name='Model: PPFD+Active Layer','Model: Ta+PPFD+Active Layer','Normed_3_2'
 		self.Filled_CO2[Name]=self.Normalize(a,b,self.Filled_CO2.copy(),Name)
-		a,b,Name='Model: Ta+PPFD+Active Layer','Model: Wind Spd+Ta+PPFD+VWC+Active Layer','Normed_5_3'
+		a,b,Name='Model: Ta+PPFD+Active Layer','Model: Wind Spd+Ta+PPFD+VWC+Active Layer','Normed_4_3'
 		self.Filled_CO2[Name]=self.Normalize(a,b,self.Filled_CO2.copy(),Name)
 
-		Subset = self.Filled_CO2[self.Filled_CO2[Name].between(self.Filled_CO2[Name].quantile(.05), self.Filled_CO2[Name].quantile(.95), inclusive=True)]
-		cbobj1=ax2.scatter(Subset['Active Layer'],Subset['Ta'],c=Subset[Name],cmap = 'bwr',s=ScatterSize,
-			vmin=-((Subset[Name]**2)**.5).max(),vmax=((Subset[Name]**2)**.5).max())
-		cbobj2=ax3.scatter(Subset['Wind Spd'],Subset['VWC'],c=Subset[Name],cmap = 'bwr',s=ScatterSize,
-			vmin=-((Subset[Name]**2)**.5).max(),vmax=((Subset[Name]**2)**.5).max())
+
+		Subset = self.Filled_CO2[np.isnan(self.Filled_CO2['fco2'])==False]
+		# Subset = Subset[Subset[Name].between(Subset[Name].quantile(.05), Subset[Name].quantile(.95), inclusive=True)]
+		cbobj1=ax2.scatter(Subset['Ta']*-1,Subset['Normed_3_2'],c=Subset[Name],cmap = 'bwr',edgecolor='black',linewidth = .5,s=ScatterSize,
+			vmin=-((Subset[Name]**2)**.5).max(),vmax=((Subset['Normed_3_2']**2)**.5).max())
+		cbobj2=ax3.scatter(Subset['Wind Spd'],Subset['Normed_4_3'],c=Subset['Normed_4_3'],cmap = 'bwr',edgecolor='black',linewidth = .5,s=ScatterSize,
+			vmin=-((Subset['Normed_4_3']**2)**.5).max(),vmax=((Subset['Normed_4_3']**2)**.5).max())
+
+		ax2.set_xlabel('Thaw Depth m',fontsize=self.MinorFont)
+		ax2.set_ylabel('$T_a \circ C$',fontsize=self.MinorFont)
+		ax3.set_xlabel('Wind Speed $m s^{-1}$',fontsize=self.MinorFont)
+		ax3.set_ylabel('Soil Water Content',fontsize=self.MinorFont)
 		# cbobj1=ax2.scatter(self.Filled_CO2['Active Layer'],self.Filled_CO2['Ta'],c=self.Filled_CO2[Name],cmap = 'bwr',s=ScatterSize)
 		# cbobj2=ax3.scatter(self.Filled_CO2['Wind Spd'],self.Filled_CO2['VWC'],c=self.Filled_CO2[Name],cmap = 'bwr',s=ScatterSize)
 
-		Score = self.Filled_CO2[['fco2',BM]].dropna()
-		LR = stats.linregress(Score['fco2'].values,Score[BM].values)
-		Line = LR[0]*Score['fco2']+LR[1]
-		ax4.plot(self.Filled_CO2['fco2'],self.Filled_CO2['fco2'],label='1:1',color='black',linewidth=MinorLine)
-		ax4.scatter(self.Filled_CO2['fco2'],self.Filled_CO2[BM],label=None,color=LightGreen,s=ScatterSize)
-		ax4.plot(Score['fco2'],Line,color = DarkGreen,label='$r^2$: '+str(np.round(LR[2]**2,2)),linewidth=MajorLine)
+		# Score = self.Filled_CO2[['fco2',BM]].dropna()
+		# LR = stats.linregress(Score['fco2'].values,Score[BM].values)
+		# Line = LR[0]*Score['fco2']+LR[1]
+		# ax4.plot(self.Filled_CO2['fco2'],self.Filled_CO2['fco2'],label='1:1',color='black',linewidth=MinorLine)
+		# ax4.scatter(self.Filled_CO2['fco2'],self.Filled_CO2[BM],label=None,color=LightGreen,s=ScatterSize,edgecolor='black',linewidth = .5)
+		# ax4.plot(Score['fco2'],Line,color = DarkGreen,label='$r^2$: '+str(np.round(LR[2]**2,2)),linewidth=MajorLine)
 
 		self.NN_Style(ax,ax1,ax2,ax3,ax4,'co2',cbobj1,cbobj2)
 
@@ -294,7 +388,7 @@ class Results:
 		ax1.annotate("Most Parsimonious Model",
 		 xy=(5, .59), xytext=(6.1, .68),arrowprops=dict(facecolor='black', shrink=0.05),horizontalalignment='center',fontsize=self.MinorFont)
 		
-		y = .27
+		y = .25
 		for index,row in self.Summary_CH4.iterrows():
 			if index > 1:
 				ax1.text(index,y,row['Model Name']+') '+lastModel+'+'+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
@@ -303,24 +397,29 @@ class Results:
 			lastModel = row['Model Name']
 
 
-		a,b,Name='Model: PPFD','Model: Wind Spd+PPFD+Active Layer','Normed_3_1'
+		a,b,Name='Model: PPFD','Model: Wind Spd+PPFD','Normed_2_1'
 		self.Filled_CH4[Name]=self.Normalize(a,b,self.Filled_CH4.copy(),Name)
-		a,b,Name='Model: Wind Spd+PPFD+Active Layer','Model: Wind Spd+air pressure+PPFD+Active Layer+Water Table','Normed_5_3'
+		a,b,Name='Model: Wind Spd+air pressure+PPFD+Active Layer','Model: Wind Spd+air pressure+PPFD+Active Layer+Water Table','Normed_5_4'
 		self.Filled_CH4[Name]=self.Normalize(a,b,self.Filled_CH4.copy(),Name)
 		
-		Subset = self.Filled_CH4[self.Filled_CH4[Name].between(self.Filled_CH4[Name].quantile(.05), self.Filled_CH4[Name].quantile(.95), inclusive=True)]
-		cbobj1=ax2.scatter(Subset['Active Layer'],Subset['Wind Spd'],c=Subset[Name],cmap = 'bwr',s=ScatterSize,
-			vmin=-((Subset[Name]**2)**.5).max(),vmax=((Subset[Name]**2)**.5).max())
-		cbobj2=ax3.scatter(Subset['Water Table'],Subset['air pressure'],c=Subset[Name],cmap = 'bwr',s=ScatterSize,
-			vmin=-((Subset[Name]**2)**.5).max(),vmax=((Subset[Name]**2)**.5).max())
+		Subset = self.Filled_CH4[np.isnan(self.Filled_CH4['fch4'])==False]
+		# Subset = Subset[Subset[Name].between(Subset[Name].quantile(.05), Subset[Name].quantile(.95), inclusive=True)]
+		cbobj1=ax2.scatter(Subset['Wind Spd'],Subset['Normed_2_1'],c=Subset['Normed_2_1'],cmap = 'bwr',linewidths=.5,edgecolor='black',s=ScatterSize,
+			vmin=-((Subset['Normed_2_1']**2)**.5).max(),vmax=((Subset['Normed_2_1']**2)**.5).max())
+		cbobj2=ax3.scatter(Subset['Water Table'],Subset['Normed_5_4'],c=Subset['Normed_5_4'],cmap = 'bwr',linewidths=.5,edgecolor='black',s=ScatterSize,
+			vmin=-((Subset['Normed_5_4']**2)**.5).max(),vmax=((Subset['Normed_5_4']**2)**.5).max())
 		# cbobj1=ax2.scatter(self.Filled_CH4['Active Layer'],self.Filled_CH4['Wind Spd'],c=self.Filled_CH4[Name],cmap = 'bwr',s=ScatterSize)
 		# cbobj2=ax3.scatter(self.Filled_CH4['Water Table'],self.Filled_CH4['air pressure'],c=self.Filled_CH4[Name],cmap = 'bwr',s=ScatterSize)
+		ax2.set_xlabel('Thaw Depth m',fontsize=self.MinorFont)
+		ax2.set_ylabel('Wind Speed $m s^{-1}$',fontsize=self.MinorFont)
+		ax3.set_xlabel('Water Table Depth m',fontsize=self.MinorFont)
+		ax3.set_ylabel('Air Pressure kPa',fontsize=self.MinorFont)
 
 		Score = self.Filled_CH4[['fch4',BM]].dropna()
 		LR = stats.linregress(Score['fch4'].values,Score[BM].values)
 		Line = LR[0]*Score['fch4']+LR[1]
 		ax4.plot(self.Filled_CH4['fch4'],self.Filled_CH4['fch4'],label='1:1',color='black',linewidth=MinorLine)
-		ax4.scatter(self.Filled_CH4['fch4'],self.Filled_CH4[BM],label=None,color=LightRed,s=ScatterSize)
+		ax4.scatter(self.Filled_CH4['fch4'],self.Filled_CH4[BM],label=None,color=LightRed,s=ScatterSize,edgecolor='black',linewidth = .5)
 		ax4.plot(Score['fch4'],Line,color = DarkRed,label='$r^2$: '+str(np.round(LR[2]**2,2)),linewidth=MajorLine)
 
 		self.NN_Style(ax,ax1,ax2,ax3,ax4,'ch4',cbobj1,cbobj2)
