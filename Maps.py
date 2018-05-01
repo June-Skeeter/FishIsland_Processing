@@ -25,9 +25,9 @@ TreeLine = gpd.read_file(GisDbase+'NorthernAtlas\\shapefiles\\LCC_NAD83/treeline
 FiRoot = 'C:/FishIsland_2017/'
 
 
-Graticule = Graticule[Graticule['display'].isin(['80 N','70 N','60 N','50 N','40 N','150 W','140 W',
+Graticule = Graticule[Graticule['display'].isin(['80 N','70 N','60 N','50 N','40 N','170 W','160 W','150 W','140 W',
                                                 '130 W','120 W','110 W','100 W','90 W'
-                                                 ,'80 W','70 W','60 W','50 W','40 W'])] 
+                                                 ,'80 W','70 W','60 W','50 W','40 W','30 W'])] 
 
 LCC = {'proj':'lcc' ,'lat_1':33 ,'lat_2':45, 
                         'lat_0':39 ,'lon_0':-96 ,'x_0':0 ,'y_0':0, 'ellps':'GRS80', 'datum':'NAD83', 'units':'m'}
@@ -69,27 +69,32 @@ def Intro_Map(ax,Major_font,Minor_font,clipped = True):
     Grey = (0.35,0.35,0.35)
     LightGrey = (0.5,0.5,0.5,0.5)
 
-    X1span,Y1span = 0.5,1
-    rect = [0.5,0.0,X1span,Y1span]
+    X1span,Y1span = 0.6,1
+    rect = [0.4,0.0,X1span,Y1span]
     ax1 = PT.add_subplot_axes(ax,rect)
     ar1 = X1span/Y1span
     ## Inset Map
-    rect = [0.0,0.0,0.5,1]
+    X2span,Y2span = 0.4,1
+    ar2 = X2span/Y2span
+    rect = [0.0,0.0,X2span,Y2span]
     ax2 = PT.add_subplot_axes(ax,rect)
     Provinces.plot(ax=ax2,color = Land,edgecolor=Grey,linewidth=.5)
     ar,xl,yl = PT.Get_Aspect_Ratio(ax2)
     Graticule.plot(ax=ax2,color = LightGrey)
     States.plot(ax = ax2,facecolor = Land,edgecolor=Grey,linewidth=.5)
     ax2.set_facecolor(Water)
-    ax2.text(-6.8e5,3.71e6,'70 N',rotation = -5,fontsize=Minor_font)
+    ax2.text(-9.0e5,3.71e6,'70 N',rotation = -5,fontsize=Minor_font)
     # ax2.text(-3e5,2.43e6,'60 N',rotation = 0,fontsize=Minor_font)
-    ax2.text(-1.35e6,4.535e6,'130 W',rotation = 75,fontsize=Minor_font)
+    ax2.text(-1.4e6,4.650e6,'130 W',rotation = 60,fontsize=Minor_font)
+
+
+    ax2.text(-1.75e6,2.9e6,'Northwest\n  Territories',rotation = -10,fontsize=Minor_font)
     # ax2.text(-3e5,4.535e6,'90 W',rotation = 90,fontsize=Minor_font)
 
     Xc = -1.33e6
     Yc = 3.65e6
-    Ydist = 2.9e6
-    Xdist = Ydist*ar
+    Ydist = 5.0e6
+    Xdist = Ydist*ar2
     X1 = Xc-Xdist/2
     X2 = Xc+Xdist/2
     Y1 = Yc-Ydist/2
@@ -123,6 +128,9 @@ def Intro_Map(ax,Major_font,Minor_font,clipped = True):
     ax1.scatter(spots.iloc[0]['X'],spots.iloc[0]['Y'],label=spots.iloc[0]['Site'],s=140,marker='*',color='red')
     ax1.scatter(spots.iloc[1]['X'],spots.iloc[1]['Y'],label=spots.iloc[1]['Site'],s=140,marker='*',color='blue')
 
+    # ax1.text()
+    # ax1.anotate(spots.iloc[1]['X'],spots.iloc[1]['Y'],label=spots.iloc[1]['Site'],s=140,marker='*',color='blue')
+
     ax1.set_facecolor(Water)
     ## Get Natural aspect ratio
     ar,xl,yl = PT.Get_Aspect_Ratio(ax1)
@@ -139,7 +147,12 @@ def Intro_Map(ax,Major_font,Minor_font,clipped = True):
     Y2 = Yc+Ydist/2
     ax1.set_ylim(Y1,Y2)
     ax1.set_xlim(X1,X2)
-    ax1.legend(loc=3,fontsize=Minor_font)
+    # ax1.legend(loc=3,fontsize=Minor_font)
+
+    ax1.annotate(spots.iloc[0]['Site'],xy = (spots.iloc[0]['X']+1e3,spots.iloc[0]['Y']-3e4),fontsize = Minor_font,textcoords='data')#label=spots.iloc[0]['Site'],s=140,marker='*',color='red')
+    ax1.annotate(spots.iloc[1]['Site'],xy = (spots.iloc[1]['X']+1e3,spots.iloc[1]['Y']-3e3),fontsize = Minor_font,textcoords='data')#label=spots.iloc[0]['Site'],s=140,marker='*',color='red')
+    ax1.annotate("Tree Line",xy = (Xc+5.1e4,Yc-4.1e4),fontsize = Minor_font,textcoords='data')#label=spots.iloc[0]['Site'],s=140,marker='*',color='red')
+    
     
     def BBox(Y1,Y2,X1,X2,ax):
         L1y = np.linspace(Y1,Y2)

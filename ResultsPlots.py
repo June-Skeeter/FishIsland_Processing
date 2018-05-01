@@ -8,6 +8,11 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.ticker import NullFormatter
 from string import ascii_uppercase
 
+import matplotlib as mpl
+mpl.rcParams["mathtext.default"] = 'regular'
+
+# mathtext.default rcParam
+
 plt.rc('axes', axisbelow=True)
 
 MajorLine = 5
@@ -26,8 +31,8 @@ LightBlue = (.25,.35,.85)
 
 Gold = (1,.843,0)
 
-umolPPFD = 'PPFD $umol\ m^{-2} s^{-1}$'
-umolCO2 = '$umol\ CO_{2} m^{-2} s^{-1}$'
+umolPPFD = 'PPFD $\mu mol\ m^{-2} s^{-1}$'
+umolCO2 = '$\mu mol\ CO_{2} m^{-2} s^{-1}$'
 nmolCH4 = '$nmol\ CH_{4} m^{-2} s^{-1}$'
 
 
@@ -43,6 +48,9 @@ class Results:
 		self.Data = self.Data.set_index(pd.DatetimeIndex(self.Data.datetime))
 		self.Data['Month'] = self.Data.index.month
 		self.Data['air pressure']*=1e-2
+
+		self.Wind_Groups = self.Data.groupby(['Dir']).size()
+
 		self.Daily = self.Data.resample('D').mean()
 		self.Daily['Day'] = self.Daily.index.dayofyear
 		self.Daily = self.Daily[(self.Daily['Day']<self.Daily['Day'].max())&(self.Daily['Day']>self.Daily['Day'].min())]
@@ -106,10 +114,26 @@ class Results:
 	def Climate(self,ax):
 		ax.get_xaxis().set_visible(False)
 		ax.get_yaxis().set_visible(False)
-		rect1 = [0.05,.14,.42,.77]
-		rect2 = [.55,.14,.42,.77]
+
+		xscale = .9
+		xpad = .055
+		yscale = .79
+		ypad = .06
+		y = ypad
+		x = np.linspace(0,.66,3)
+		xs,ys = x[1]*xscale,yscale
+		x,y=x+xpad,y+ypad
+
+
+		rect1 = [x[0]-.0075,y,xs,ys]
+		rect2 = [x[1],y,xs,ys]
+		rect3 = [x[2]-xpad*.5,y,xs,ys*.93]
+		
+		# rect1 = [0.05,.14,.42,.77]
+		# rect2 = [.55,.14,.42,.77]
 		ax1 = pt.add_subplot_axes(ax,rect1)
 		ax2 = pt.add_subplot_axes(ax,rect2)
+		ax3 = pt.add_subplot_axes(ax,rect3,Proj='polar')
 
 		ax1.plot(self.Daily.index,self.Daily['Ta'],color = LightRed, label = "$T_a$",linewidth=MajorLine)
 		ax1.plot(self.Daily.index,self.Daily['Ts 2.5 cm'],color=DarkRed, label = "$T_p$ 2.5 cm",linewidth=MajorLine)
@@ -117,6 +141,19 @@ class Results:
 		
 		ax2.plot(self.Daily['Active Layer']*-1,color = DarkRed,label = 'Thaw Depth',linewidth=MajorLine)
 		ax2.plot(self.Daily['Water Table'],color = DarkBlue,label = 'Water Table Depth',linewidth=MajorLine)
+
+		# print(self.Wind_Groups)
+		ax3.bar(pd.to_numeric(self.Wind_Groups.index)*np.pi/180,self.Wind_Groups.values/self.Wind_Groups.values.sum(),width = 30*np.pi/180, edgecolor = 'black')
+
+
+		ax3.set_theta_direction(-1)
+		ax3.set_theta_offset(0)
+		ax3.set_theta_zero_location('N')
+		ax3.set_thetagrids([0,45,90,135,180,225,270,315],['N','NE','E','SE','S','SW','W','NW'],fontsize=self.MinorFont)
+		ax3.set_title('Wind Frequency Distribution %',fontsize = self.MajorFont,y = 1.075)
+		ax3.set_rlabel_position(215)
+		ax3.set_yticks([.05,.1,.15,.2])
+		ax3.set_yticklabels(['5%','10%','15%','20%'],fontsize = self.MinorFont)
 		
 		self.allfmt(ax1)
 		self.allfmt(ax2,loc=5)
@@ -155,7 +192,35 @@ class Results:
 		plt.yticks(fontsize=self.MinorFont)
 
 	def GPP_ER(self,ax):
-		ax1,ax2,ax3,ax4 = self.Four_Plots(ax,D3=False)
+		# ax1,ax2,ax3,ax4 = self.Four_Plots(ax,D3=False)
+
+
+		xscale = .8
+		xpad = .055
+		yscale = .79
+		ypad = .06
+		x = np.linspace(0,.5,2)
+		y = np.linspace(0,.5,2)
+		xs,ys = x[1]*xscale,y[1]*yscale
+		x,y=x+xpad,y+ypad
+		print(x,y)
+
+
+		# rect1 = [x[0],y[2],xs,ys]
+		# rect2 = [x[1],y[2],xs,ys]
+		rect1 = [x[0],y[1],xs,ys]
+		rect2 = [x[1],y[1],xs,ys]
+		rect3 = [x[0],y[0],xs,ys]
+		rect4 = [x[1],y[0],xs,ys]
+		
+		ax1 = pt.add_subplot_axes(ax,rect1)
+		ax2 = pt.add_subplot_axes(ax,rect2)
+		ax3 = pt.add_subplot_axes(ax,rect3)
+		ax4 = pt.add_subplot_axes(ax,rect4)
+		# ax5 = pt.add_subplot_axes(ax,rect5)
+		# ax6 = pt.add_subplot_axes(ax,rect6)
+
+
 		ax2.boxplot(self.Boxes)
 
 		Colors = [LightBlue,LightGreen,LightRed,Gold]
@@ -204,11 +269,12 @@ class Results:
 		ax4.set_ylabel('Modeled '+umolCO2,fontsize=self.MinorFont)
 		ax4.set_xlabel('Observed '+umolCO2,fontsize=self.MinorFont)
 
+
 	def NN_Style(self,ax,ax1,ax2,ax3,ax4,Var,cbobj1,cbobj2):
-		ax1.set_title('Relative Model Performace',fontsize=self.MajorFont)
+		ax1.set_title('Relative Model Performance',fontsize=self.MajorFont)
 		ax1.set_ylabel('Normalized MSE',fontsize = self.MinorFont)
 		ax1.set_xticks(np.arange(1,11))
-		ax1.set_xlabel('Model Size',fontsize=self.MinorFont)
+		ax1.set_xlabel('Number of Factors',fontsize=self.MinorFont)
 
 		ax2.set_title('C: Norm A',fontsize=self.MajorFont)
 		rect = [0.93,.65,.01,.25]
@@ -223,7 +289,7 @@ class Results:
 		cb = self.fig.colorbar(cbobj2,cax=cbax2)
 		cb.set_label('Normalized Difference',fontsize=self.MinorFont)
 
-		ax4.set_title('Best Model Performace',fontsize=self.MajorFont)
+		ax4.set_title('Best Model Performance',fontsize=self.MajorFont)
 
 		self.allfmt(ax1)
 		self.allfmt(ax2,legend=False)
@@ -231,19 +297,45 @@ class Results:
 		self.allfmt(ax4,loc=4)
 
 		if Var == 'co2':
-			ax1.set_ylim(0.05,0.3)
+			ax1.set_ylim(0.0,0.3)
 			ax4.set_xlabel('Observed'+umolCO2,fontsize=self.MinorFont)
 			ax4.set_ylabel('Modeled'+umolCO2,fontsize=self.MinorFont)
 		else:
-			ax1.set_ylim(0.24,0.84)
+			ax1.set_ylim(0.0,0.84)
 			ax4.set_xlabel('Observed'+nmolCH4,fontsize=self.MinorFont)
 			ax4.set_ylabel('Modeled'+nmolCH4,fontsize=self.MinorFont)
 
 	def BestML(self,ax):
-		ax1,ax2,ax3,ax4 = self.Four_Plots(ax)
+		# ax1,ax2,ax3,ax4 = self.Four_Plots(ax)
 
-		# self.BestCO2 = self.Summary_CO2.loc[self.Summary_CO2['MSE']==self.Summary_CO2['MSE'].min()]
-		# BM = self.BestCO2['Models'].values[0]
+
+		xscale = .82
+		xpad = .05
+		yscale = .78
+		ypad = .05
+		x = np.linspace(0,.5,2)
+		y = np.linspace(0,.66,3)
+		xs,ys = x[1]*xscale,y[1]*yscale
+		x,y=x+xpad,y+ypad
+		print(x,y)
+
+
+		rect1 = [x[0],y[2],xs,ys]
+		rect2 = [x[1],y[2],xs,ys]
+		rect3 = [x[0],y[1],xs,ys]
+		rect4 = [x[1],y[1],xs,ys]
+		rect5 = [x[0],y[0],xs,ys]
+		rect6 = [x[1],y[0],xs,ys]
+		
+		ax1 = pt.add_subplot_axes(ax,rect1)
+		ax2 = pt.add_subplot_axes(ax,rect2)
+		ax3 = pt.add_subplot_axes(ax,rect3)
+		ax4 = pt.add_subplot_axes(ax,rect4)
+		ax5 = pt.add_subplot_axes(ax,rect5)
+		ax6 = pt.add_subplot_axes(ax,rect6)
+		
+
+
 		self.BMCO2 = 'Model: Wind Spd+Ta+PPFD+VWC+Active Layer'
 		self.BMCH4 = 'Model: Wind Spd+air pressure+PPFD+Active Layer+Water Table'
 
@@ -251,7 +343,7 @@ class Results:
 		ax1.errorbar(self.Summary_CO2.index,self.Summary_CO2['MSE'],self.Summary_CO2['CI'],fmt = 'o',color='black',label = '95% CI')
 		ax1.annotate('Most Parsimonious Model', xy=(5, .18), xytext=(5.5, .25),
             arrowprops=dict(facecolor='black', shrink=0.05),horizontalalignment='center',fontsize=self.MinorFont-2)
-		y_co2 = .055
+		y_co2 = .01
 		for index,row in self.Summary_CO2.iterrows():
 			if index > 1:
 				ax1.text(index,y_co2,row['Model Name']+') '+lastModel+'+'+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
@@ -259,13 +351,12 @@ class Results:
 				ax1.text(index,y_co2,row['Model Name']+') '+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
 			lastModel = row['Model Name']
 
-
 		ax2.bar(self.Summary_CH4.index,self.Summary_CH4['MSE'],color = DarkRed)
 		ax2.errorbar(self.Summary_CH4.index,self.Summary_CH4['MSE'],self.Summary_CH4['CI'],fmt = 'o',
 			color='black',label = '95% CI')
 		ax2.annotate("Most Parsimonious Model",
-		 xy=(5, .59), xytext=(6.1, .68),arrowprops=dict(facecolor='black', shrink=0.05),horizontalalignment='center',fontsize=self.MinorFont)
-		y_ch4 = .25
+		 xy=(5, .59), xytext=(5.1, .73),arrowprops=dict(facecolor='black', shrink=0.05),horizontalalignment='center',fontsize=self.MinorFont)
+		y_ch4 = .01
 		for index,row in self.Summary_CH4.iterrows():
 			if index > 1:
 				ax2.text(index,y_ch4,row['Model Name']+') '+lastModel+'+'+row['NewVar'],rotation=90,color='white',fontsize=self.MinorFont,horizontalalignment='center',verticalalignment='bottom')
@@ -288,39 +379,161 @@ class Results:
 		ax4.plot(Score['fch4'],Line,color = DarkRed,label='$r^2$: '+str(np.round(LR[2]**2,2)),linewidth=MajorLine)
 
 
-		ax1.set_ylim(0.05,0.3)
-		ax3.set_xlabel('Observed'+umolCO2,fontsize=self.MinorFont)
-		ax3.set_ylabel('Modeled'+umolCO2,fontsize=self.MinorFont)
-		ax3.set_title('Best Model Performace',fontsize=self.MajorFont)
+		ax1.set_ylim(0.0,0.3)
+		ax3.set_xlabel('Observed '+umolCO2,fontsize=self.MinorFont)
+		ax3.set_ylabel('Modeled '+umolCO2,fontsize=self.MinorFont)
+		ax3.set_title('Best Model Performance: NEE',fontsize=self.MajorFont)
 
-		ax2.set_ylim(0.24,0.84)
-		ax4.set_xlabel('Observed'+nmolCH4,fontsize=self.MinorFont)
-		ax4.set_ylabel('Modeled'+nmolCH4,fontsize=self.MinorFont)
-		ax4.set_title('Best Model Performace',fontsize=self.MajorFont)
+		ax2.set_ylim(0.0,0.84)
+		ax4.set_xlabel('Observed '+nmolCH4,fontsize=self.MinorFont)
+		ax4.set_ylabel('Modeled '+nmolCH4,fontsize=self.MinorFont)
+		ax4.set_title('Best Model Performance: NME',fontsize=self.MajorFont)
 
 
-		ax1.set_title('Relative Model Performace',fontsize=self.MajorFont)
+		ax1.set_title('Relative Model Performance: NEE',fontsize=self.MajorFont)
 		ax1.set_ylabel('Normalized MSE',fontsize = self.MinorFont)
 		ax1.set_xticks(np.arange(1,11))
-		ax1.set_xlabel('Model Size',fontsize=self.MinorFont)
+		ax1.set_xlabel('Number of Factors',fontsize=self.MinorFont)
 
 
-		ax2.set_title('Relative Model Performace',fontsize=self.MajorFont)
+		ax2.set_title('Relative Model Performance: NME',fontsize=self.MajorFont)
 		ax2.set_ylabel('Normalized MSE',fontsize = self.MinorFont)
 		ax2.set_xticks(np.arange(1,11))
-		ax2.set_xlabel('Model Size',fontsize=self.MinorFont)
+		ax2.set_xlabel('Number of Factors',fontsize=self.MinorFont)
 
 		self.allfmt(ax1)
 		self.allfmt(ax2)
-		self.allfmt(ax3,loc=4)
-		self.allfmt(ax4,loc=4)
+		self.allfmt(ax3,loc=2)
+		self.allfmt(ax4,loc=2)
 
-	def Normalize(self,a,b,Data,Name):
-		c = np.abs(Data[[a,b]].min().values.min())+1
-		Data[[a,b]]+=c
-		# Data[Name] = (Data[b] - Data[a])/(Data[b] + Data[a])
-		Data[Name] = Data[b]-Data[a]
-		return(Data[Name])
+		self.Filled_CO2.sort_values(by='PPFD',inplace=True)
+		score = self.Filled_CO2[['fco2','Model: PPFD']].dropna()
+		lr = stats.linregress(score['fco2'].values,score['Model: PPFD'].values)
+
+		ax5.scatter(self.Filled_CO2['PPFD'],self.Filled_CO2['fco2'],s=ScatterSize,color=LightGreen,edgecolor='black',linewidth=.5,label='Oservations')
+		ax5.plot(self.Filled_CO2['PPFD'],self.Filled_CO2['Model: PPFD'],linewidth=5,color=DarkGreen,label = '$r^2$: '+str(np.round(lr[2]**2,2)))
+		ax5.set_title('A) PPFD: NEE',fontsize=self.MajorFont)
+		ax5.set_xlabel(umolPPFD,fontsize=self.MinorFont)
+		ax5.set_ylabel(umolCO2,fontsize=self.MinorFont)
+		ax5.legend(fontsize=self.MinorFont)
+		ax5.grid()
+
+		self.Filled_CH4.sort_values(by='PPFD',inplace=True)
+		score = self.Filled_CH4[['fch4','Model: PPFD']].dropna()
+		lr = stats.linregress(score['fch4'].values,score['Model: PPFD'].values)
+
+		ax6.scatter(self.Filled_CH4['PPFD'],self.Filled_CH4['fch4'],s=ScatterSize,color=LightRed,edgecolor='black',linewidth=.5,label='Oservations')
+		ax6.plot(self.Filled_CH4['PPFD'],self.Filled_CH4['Model: PPFD'],linewidth=5,color=DarkRed,label = '$r^2$: '+str(np.round(lr[2]**2,2)))
+		ax6.set_title('A) PPFD: NME',fontsize=self.MajorFont)
+		ax6.set_xlabel(umolPPFD,fontsize=self.MinorFont)
+		ax6.set_ylabel(nmolCH4,fontsize=self.MinorFont)
+		ax6.legend(fontsize=self.MinorFont)
+		ax6.grid()
+
+	def Get_Name(self,Name):
+		co2 = self.Summary_CO2[self.Summary_CO2['Model Name'] ==Name]['Models'].values[0]
+		ch4 = self.Summary_CH4[self.Summary_CH4['Model Name'] ==Name]['Models'].values[0]
+		return(co2,ch4)
+
+	def Factors(self,ax):
+		xscale = .76
+		xpad = .045
+		yscale = .78
+		ypad = .05
+		x = np.linspace(0,.75,4)
+		y = np.linspace(0,.5,2)
+		xs,ys = x[1]*xscale,y[1]*yscale
+		x,y=x+xpad,y+ypad
+		print(x,y)
+
+
+		rect1 = [x[0],y[1],xs,ys]
+		rect2 = [x[1],y[1],xs,ys]
+		rect3 = [x[2],y[1],xs,ys]
+		rect4 = [x[3],y[1],xs,ys]
+		rect5 = [x[0],y[0],xs,ys]
+		rect6 = [x[1],y[0],xs,ys]
+		rect7 = [x[2],y[0],xs,ys]
+		rect8 = [x[3],y[0],xs,ys]
+
+		ax1 = pt.add_subplot_axes(ax,rect1)
+		ax2 = pt.add_subplot_axes(ax,rect2)
+		ax3 = pt.add_subplot_axes(ax,rect3)
+		ax4 = pt.add_subplot_axes(ax,rect4)
+		ax5 = pt.add_subplot_axes(ax,rect5)
+		ax6 = pt.add_subplot_axes(ax,rect6)
+		ax7 = pt.add_subplot_axes(ax,rect7)
+		ax8 = pt.add_subplot_axes(ax,rect8)
+
+		CO2=self.Filled_CO2[np.isnan(self.Filled_CO2['fco2'])==False].copy()
+		CH4=self.Filled_CH4[np.isnan(self.Filled_CH4['fch4'])==False].copy()
+
+		Aco2,Ach4 = self.Get_Name('A')
+
+		Bco2,Bch4 = self.Get_Name('B')
+		CO2['A_B']=CO2[Bco2]-CO2[Aco2]
+		CH4['A_B']=CH4[Bch4]-CH4[Ach4]
+		ax1.scatter(CO2['Active Layer']*-1,CO2['A_B'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
+		ax5.scatter(CH4['Wind Spd'],CH4['A_B'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+
+		ax1.set_ylabel('Difference '+umolCO2,fontsize=self.MinorFont)
+		ax5.set_ylabel('Difference '+nmolCH4,fontsize=self.MinorFont)
+
+		ax1.set_xlabel('Thaw Depth m',fontsize=self.MinorFont)
+		ax5.set_xlabel('Wind Speed m s${-1}$',fontsize=self.MinorFont)
+
+		ax1.set_title('B-A: NEE',fontsize=self.MinorFont)
+		ax5.set_title('B-A: NME',fontsize=self.MinorFont)
+
+		Cco2,Cch4 = self.Get_Name('C')
+		CO2['B_C']=CO2[Cco2]-CO2[Bco2]
+		CH4['B_C']=CH4[Cch4]-CH4[Bch4]
+		ax2.scatter(CO2['Ta'],CO2['B_C'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
+		ax6.scatter(CH4['Active Layer'],CH4['B_C'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+
+		ax2.set_xlabel('$T_a\ ^{\circ}C$',fontsize=self.MinorFont)
+		ax6.set_xlabel('Thaw Depth m',fontsize=self.MinorFont)
+
+		ax2.set_title('C-B: NEE',fontsize=self.MinorFont)
+		ax6.set_title('C-B: NME',fontsize=self.MinorFont)
+
+		Dco2,Dch4 = self.Get_Name('D')
+		CO2['C_D']=CO2[Dco2]-CO2[Cco2]
+		CH4['C_D']=CH4[Dch4]-CH4[Cch4]
+		ax3.scatter(CO2['Wind Spd'],CO2['C_D'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
+		ax7.scatter(CH4['air pressure'],CH4['C_D'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+
+		ax3.set_xlabel('Wind Speed m s$^{-1}$',fontsize=self.MinorFont)
+		ax7.set_xlabel('$P_a\ kPa$',fontsize=self.MinorFont)
+
+		ax3.set_title('D-C: NEE',fontsize=self.MinorFont)
+		ax7.set_title('D-C: NME',fontsize=self.MinorFont)
+
+		Eco2,Ech4 = self.Get_Name('E')
+		CO2['D_E']=CO2[Eco2]-CO2[Dco2]
+		CH4['D_E']=CH4[Ech4]-CH4[Dch4]
+		ax4.scatter(CO2['VWC'],CO2['D_E'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
+		ax8.scatter(CH4['Water Table'],CH4['D_E'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+
+		ax4.set_xlabel('SWC %',fontsize=self.MinorFont)
+		ax8.set_xlabel('Water Table Depth m',fontsize=self.MinorFont)
+
+		ax4.set_title('E-D: NEE',fontsize=self.MinorFont)
+		ax8.set_title('E-D: NME',fontsize=self.MinorFont)
+
+		ax1.grid()
+		ax2.grid()
+		ax3.grid()
+		ax4.grid()
+		ax5.grid()
+		ax6.grid()
+		ax7.grid()
+		ax8.grid()
+		# Cco2,Cch4 = self.Get_Name('E')
+		# CO2['C_D']=CO2[Bco2]-CO2[Aco2]
+		# CH4['C_D']=CH4[Bch4]-CH4[Ach4]
+		# ax5.scatter(CO2['Wind Spd'],CO2['C_D'])
+		# ax7.scatter(CH4['air pressure'],CH4['C_D'])
 
 	def CO2(self,ax,fig):
 		# self.fig = fig
@@ -447,6 +660,8 @@ class Results:
 
 		c = self.Daily['Fch4_mean'].count()
 
+		print(co2eqMean-co2eqStd/(c)**.5 *1.96)
+		print(co2eqMean+co2eqStd/(c)**.5 *1.96)
 
 		co2CI = pt.round_sigfigs(co2Std/(c)**.5 *1.96,2)
 		ch4CI = pt.round_sigfigs(ch4Std/(c)**.5 *1.96,2)
@@ -488,11 +703,11 @@ class Results:
 
 		ax1.set_title('NEE',fontsize=self.MajorFont,loc='left')
 		ax2.set_title('NME',fontsize=self.MajorFont,loc='left')
-		ax3.set_title('NEE + NMEx28',fontsize=self.MajorFont,loc='left')
+		ax3.set_title('NEE + 28*NME',fontsize=self.MajorFont,loc='left')
 
-		ax1.set_ylabel(gCO2,fontsize=self.MajorFont)
-		ax2.set_ylabel(mgCH4,fontsize=self.MajorFont)
-		ax3.set_ylabel(gCO2eq,fontsize=self.MajorFont)
+		ax1.set_ylabel(gCO2,fontsize=self.MinorFont)
+		ax2.set_ylabel(mgCH4,fontsize=self.MinorFont)
+		ax3.set_ylabel(gCO2eq,fontsize=self.MinorFont)
 
 
 
