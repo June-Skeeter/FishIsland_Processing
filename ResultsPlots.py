@@ -36,9 +36,9 @@ umolCO2 = '$\mu mol\ CO_{2} m^{-2} s^{-1}$'
 nmolCH4 = '$nmol\ CH_{4} m^{-2} s^{-1}$'
 
 
-gCO2 = '$g\ CO_{2} m^{-2} s^{-1}$'
-mgCH4 = '$mg\ CH_{4} m^{-2} s^{-1}$'
-gCO2eq = '$g\ CO_{2} eq. m^{-2} s^{-1}$'
+gCO2 = '$g\ CO_{2} m^{-2} d^{-1}$'
+mgCH4 = '$mg\ CH_{4} m^{-2} d^{-1}$'
+gCO2eq = '$g\ CO_{2} eq. m^{-2} d^{-1}$'
 
 class Results:
 	def __init__(self,DataPath,FillPath_CH4,SummaryPath_CH4,FillPath_CO2,SummaryPath_CO2,MajorFont,MinorFont):
@@ -115,12 +115,12 @@ class Results:
 		ax.get_xaxis().set_visible(False)
 		ax.get_yaxis().set_visible(False)
 
-		xscale = .9
-		xpad = .055
+		xscale = .78
+		xpad = .075
 		yscale = .79
-		ypad = .06
+		ypad = .07
 		y = ypad
-		x = np.linspace(0,.66,3)
+		x = np.linspace(0.01,.68,3)
 		xs,ys = x[1]*xscale,yscale
 		x,y=x+xpad,y+ypad
 
@@ -309,23 +309,23 @@ class Results:
 		# ax1,ax2,ax3,ax4 = self.Four_Plots(ax)
 
 
-		xscale = .82
-		xpad = .05
+		xscale = .78
+		xpad = .075
 		yscale = .78
-		ypad = .05
-		x = np.linspace(0,.5,2)
-		y = np.linspace(0,.66,3)
+		ypad = .075
+		x = np.linspace(0,.66,3)
+		y = np.linspace(0,.5,2)
 		xs,ys = x[1]*xscale,y[1]*yscale
 		x,y=x+xpad,y+ypad
 		print(x,y)
 
 
-		rect1 = [x[0],y[2],xs,ys]
-		rect2 = [x[1],y[2],xs,ys]
-		rect3 = [x[0],y[1],xs,ys]
-		rect4 = [x[1],y[1],xs,ys]
-		rect5 = [x[0],y[0],xs,ys]
-		rect6 = [x[1],y[0],xs,ys]
+		rect1 = [x[0],y[1],xs,ys]
+		rect2 = [x[0],y[0],xs,ys]
+		rect3 = [x[1],y[1],xs,ys]
+		rect4 = [x[1],y[0],xs,ys]
+		rect5 = [x[2],y[1],xs,ys]
+		rect6 = [x[2],y[0],xs,ys]
 		
 		ax1 = pt.add_subplot_axes(ax,rect1)
 		ax2 = pt.add_subplot_axes(ax,rect2)
@@ -437,10 +437,10 @@ class Results:
 
 	def Factors(self,ax):
 		xscale = .76
-		xpad = .045
+		xpad = .075
 		yscale = .78
 		ypad = .05
-		x = np.linspace(0,.75,4)
+		x = np.linspace(0,.5,2)
 		y = np.linspace(0,.5,2)
 		xs,ys = x[1]*xscale,y[1]*yscale
 		x,y=x+xpad,y+ypad
@@ -449,21 +449,21 @@ class Results:
 
 		rect1 = [x[0],y[1],xs,ys]
 		rect2 = [x[1],y[1],xs,ys]
-		rect3 = [x[2],y[1],xs,ys]
-		rect4 = [x[3],y[1],xs,ys]
+		# rect3 = [x[2],y[1],xs,ys]
+		# rect4 = [x[3],y[1],xs,ys]
 		rect5 = [x[0],y[0],xs,ys]
 		rect6 = [x[1],y[0],xs,ys]
-		rect7 = [x[2],y[0],xs,ys]
-		rect8 = [x[3],y[0],xs,ys]
+		# rect7 = [x[2],y[0],xs,ys]
+		# rect8 = [x[3],y[0],xs,ys]
 
 		ax1 = pt.add_subplot_axes(ax,rect1)
 		ax2 = pt.add_subplot_axes(ax,rect2)
-		ax3 = pt.add_subplot_axes(ax,rect3)
-		ax4 = pt.add_subplot_axes(ax,rect4)
-		ax5 = pt.add_subplot_axes(ax,rect5)
-		ax6 = pt.add_subplot_axes(ax,rect6)
-		ax7 = pt.add_subplot_axes(ax,rect7)
-		ax8 = pt.add_subplot_axes(ax,rect8)
+		ax3 = pt.add_subplot_axes(ax,rect5)
+		ax4 = pt.add_subplot_axes(ax,rect6)
+		# ax5 = pt.add_subplot_axes(ax,rect5)
+		# ax6 = pt.add_subplot_axes(ax,rect6)
+		# ax7 = pt.add_subplot_axes(ax,rect7)
+		# ax8 = pt.add_subplot_axes(ax,rect8)
 
 		CO2=self.Filled_CO2[np.isnan(self.Filled_CO2['fco2'])==False].copy()
 		CH4=self.Filled_CH4[np.isnan(self.Filled_CH4['fch4'])==False].copy()
@@ -473,67 +473,210 @@ class Results:
 		Bco2,Bch4 = self.Get_Name('B')
 		CO2['A_B']=CO2[Bco2]-CO2[Aco2]
 		CH4['A_B']=CH4[Bch4]-CH4[Ach4]
+
+
 		ax1.scatter(CO2['Active Layer']*-1,CO2['A_B'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
-		ax5.scatter(CH4['Wind Spd'],CH4['A_B'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+		# ax5.scatter(CH4['Wind Spd'],CH4['A_B'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
 
 		ax1.set_ylabel('Difference '+umolCO2,fontsize=self.MinorFont)
-		ax5.set_ylabel('Difference '+nmolCH4,fontsize=self.MinorFont)
+		# ax5.set_ylabel('Difference '+nmolCH4,fontsize=self.MinorFont)
 
 		ax1.set_xlabel('Thaw Depth m',fontsize=self.MinorFont)
-		ax5.set_xlabel('Wind Speed m s${-1}$',fontsize=self.MinorFont)
+		# ax5.set_xlabel('Wind Speed m s${-1}$',fontsize=self.MinorFont)
 
-		ax1.set_title('B-A: NEE',fontsize=self.MinorFont)
-		ax5.set_title('B-A: NME',fontsize=self.MinorFont)
+		ax1.set_title('B-A: NEE',fontsize=self.MajorFont)
+		# ax5.set_title('B-A: NME',fontsize=self.MinorFont)
 
 		Cco2,Cch4 = self.Get_Name('C')
 		CO2['B_C']=CO2[Cco2]-CO2[Bco2]
 		CH4['B_C']=CH4[Cch4]-CH4[Bch4]
 		ax2.scatter(CO2['Ta'],CO2['B_C'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
-		ax6.scatter(CH4['Active Layer'],CH4['B_C'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+		# ax6.scatter(CH4['Active Layer'],CH4['B_C'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
 
 		ax2.set_xlabel('$T_a\ ^{\circ}C$',fontsize=self.MinorFont)
-		ax6.set_xlabel('Thaw Depth m',fontsize=self.MinorFont)
+		# ax6.set_xlabel('Thaw Depth m',fontsize=self.MinorFont)
 
-		ax2.set_title('C-B: NEE',fontsize=self.MinorFont)
-		ax6.set_title('C-B: NME',fontsize=self.MinorFont)
+		ax2.set_title('C-B: NEE',fontsize=self.MajorFont)
+		# ax6.set_title('C-B: NME',fontsize=self.MinorFont)
 
 		Dco2,Dch4 = self.Get_Name('D')
 		CO2['C_D']=CO2[Dco2]-CO2[Cco2]
 		CH4['C_D']=CH4[Dch4]-CH4[Cch4]
 		ax3.scatter(CO2['Wind Spd'],CO2['C_D'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
-		ax7.scatter(CH4['air pressure'],CH4['C_D'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+		# ax7.scatter(CH4['air pressure'],CH4['C_D'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
 
 		ax3.set_xlabel('Wind Speed m s$^{-1}$',fontsize=self.MinorFont)
-		ax7.set_xlabel('$P_a\ kPa$',fontsize=self.MinorFont)
+		# ax7.set_xlabel('$P_a\ kPa$',fontsize=self.MinorFont)
 
-		ax3.set_title('D-C: NEE',fontsize=self.MinorFont)
-		ax7.set_title('D-C: NME',fontsize=self.MinorFont)
+		ax3.set_title('D-C: NEE',fontsize=self.MajorFont)
+		ax3.set_ylabel('Difference '+umolCO2,fontsize=self.MinorFont)
+		# ax7.set_title('D-C: NME',fontsize=self.MinorFont)
 
 		Eco2,Ech4 = self.Get_Name('E')
 		CO2['D_E']=CO2[Eco2]-CO2[Dco2]
 		CH4['D_E']=CH4[Ech4]-CH4[Dch4]
 		ax4.scatter(CO2['VWC'],CO2['D_E'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
-		ax8.scatter(CH4['Water Table'],CH4['D_E'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+		# ax8.scatter(CH4['Water Table'],CH4['D_E'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
 
 		ax4.set_xlabel('SWC %',fontsize=self.MinorFont)
-		ax8.set_xlabel('Water Table Depth m',fontsize=self.MinorFont)
+		# ax8.set_xlabel('Water Table Depth m',fontsize=self.MinorFont)
 
-		ax4.set_title('E-D: NEE',fontsize=self.MinorFont)
-		ax8.set_title('E-D: NME',fontsize=self.MinorFont)
+		ax4.set_title('E-D: NEE',fontsize=self.MajorFont)
+		# ax8.set_title('E-D: NME',fontsize=self.MinorFont)
 
-		ax1.grid()
-		ax2.grid()
-		ax3.grid()
-		ax4.grid()
-		ax5.grid()
-		ax6.grid()
-		ax7.grid()
-		ax8.grid()
+		# ax1.grid()
+		# ax2.grid()
+		# ax3.grid()
+		# ax4.grid()
+
+
+		score = CO2[['fco2',Aco2]].dropna()
+		lra = stats.linregress(score['fco2'].values,score[Aco2].values)
+		score = CO2[['fco2',Bco2]].dropna()
+		lrb = stats.linregress(score['fco2'].values,score[Bco2].values)
+		score = CO2[['fco2',Cco2]].dropna()
+		lrc = stats.linregress(score['fco2'].values,score[Cco2].values)
+		score = CO2[['fco2',Dco2]].dropna()
+		lrd = stats.linregress(score['fco2'].values,score[Dco2].values)
+		score = CO2[['fco2',Eco2]].dropna()
+		lre = stats.linregress(score['fco2'].values,score[Eco2].values)
+		print(lra[2]**2,lrb[2]**2,lrc[2]**2,lrd[2]**2,lre[2]**2)
+		# ax5.grid()
+		# ax6.grid()
+		# ax7.grid()
+		# ax8.grid()
+
+
+		self.allfmt(ax1,legend=False)
+		self.allfmt(ax2,legend=False)
+		self.allfmt(ax3,legend=False)
+		self.allfmt(ax4,legend=False)
+
 		# Cco2,Cch4 = self.Get_Name('E')
 		# CO2['C_D']=CO2[Bco2]-CO2[Aco2]
 		# CH4['C_D']=CH4[Bch4]-CH4[Ach4]
 		# ax5.scatter(CO2['Wind Spd'],CO2['C_D'])
 		# ax7.scatter(CH4['air pressure'],CH4['C_D'])
+
+	def Factors2(self,ax):
+		xscale = .82
+		xpad = .075
+		yscale = .78
+		ypad = .05
+		x = np.linspace(0,.5,2)
+		y = np.linspace(0,.5,2)
+		xs,ys = x[1]*xscale,y[1]*yscale
+		x,y=x+xpad,y+ypad
+		print(x,y)
+
+
+		rect1 = [x[0],y[1],xs,ys]
+		rect2 = [x[1],y[1],xs,ys]
+		# rect3 = [x[2],y[1],xs,ys]
+		# rect4 = [x[3],y[1],xs,ys]
+		rect5 = [x[0],y[0],xs,ys]
+		rect6 = [x[1],y[0],xs,ys]
+		# rect7 = [x[2],y[0],xs,ys]
+		# rect8 = [x[3],y[0],xs,ys]
+
+		# ax1 = pt.add_subplot_axes(ax,rect1)
+		# ax2 = pt.add_subplot_axes(ax,rect2)
+		# ax3 = pt.add_subplot_axes(ax,rect5)
+		# ax4 = pt.add_subplot_axes(ax,rect6)
+		ax5 = pt.add_subplot_axes(ax,rect1)
+		ax6 = pt.add_subplot_axes(ax,rect2)
+		ax7 = pt.add_subplot_axes(ax,rect5)
+		ax8 = pt.add_subplot_axes(ax,rect6)
+
+		CO2=self.Filled_CO2[np.isnan(self.Filled_CO2['fco2'])==False].copy()
+		CH4=self.Filled_CH4[np.isnan(self.Filled_CH4['fch4'])==False].copy()
+
+		Aco2,Ach4 = self.Get_Name('A')
+
+		Bco2,Bch4 = self.Get_Name('B')
+		CO2['A_B']=CO2[Bco2]-CO2[Aco2]
+		CH4['A_B']=CH4[Bch4]-CH4[Ach4]
+		# ax1.scatter(CO2['Active Layer']*-1,CO2['A_B'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
+		ax5.scatter(CH4['Wind Spd'],CH4['A_B'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+
+		# ax1.set_ylabel('Difference '+umolCO2,fontsize=self.MinorFont)
+		ax5.set_ylabel('Difference '+nmolCH4,fontsize=self.MinorFont)
+
+		# ax1.set_xlabel('Thaw Depth m',fontsize=self.MinorFont)
+		ax5.set_xlabel('Wind Speed m s${-1}$',fontsize=self.MinorFont)
+
+		# ax1.set_title('B-A: NEE',fontsize=self.MinorFont)
+		ax5.set_title('B-A: NME',fontsize=self.MajorFont)
+
+		Cco2,Cch4 = self.Get_Name('C')
+		CO2['B_C']=CO2[Cco2]-CO2[Bco2]
+		CH4['B_C']=CH4[Cch4]-CH4[Bch4]
+		# ax2.scatter(CO2['Ta'],CO2['B_C'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
+		ax6.scatter(CH4['Active Layer'],CH4['B_C'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+
+		# ax2.set_xlabel('$T_a\ ^{\circ}C$',fontsize=self.MinorFont)
+		ax6.set_xlabel('Thaw Depth m',fontsize=self.MinorFont)
+
+		# ax2.set_title('C-B: NEE',fontsize=self.MinorFont)
+		ax6.set_title('C-B: NME',fontsize=self.MajorFont)
+
+		Dco2,Dch4 = self.Get_Name('D')
+		CO2['C_D']=CO2[Dco2]-CO2[Cco2]
+		CH4['C_D']=CH4[Dch4]-CH4[Cch4]
+		# ax3.scatter(CO2['Wind Spd'],CO2['C_D'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
+		ax7.scatter(CH4['air pressure'],CH4['C_D'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+
+		# ax3.set_xlabel('Wind Speed m s$^{-1}$',fontsize=self.MinorFont)
+		ax7.set_xlabel('$P_a\ kPa$',fontsize=self.MinorFont)
+
+		# ax3.set_title('D-C: NEE',fontsize=self.MinorFont)
+		# ax3.set_ylabel('Difference '+umolCO2,fontsize=self.MinorFont)
+		ax7.set_title('D-C: NME',fontsize=self.MajorFont)
+		ax7.set_ylabel('Difference '+umolCO2,fontsize=self.MinorFont)
+
+		Eco2,Ech4 = self.Get_Name('E')
+		CO2['D_E']=CO2[Eco2]-CO2[Dco2]
+		CH4['D_E']=CH4[Ech4]-CH4[Dch4]
+		# ax4.scatter(CO2['VWC'],CO2['D_E'],color=LightGreen,edgecolor='black',linewidth=.5,s=ScatterSize)
+		ax8.scatter(CH4['Water Table'],CH4['D_E'],color=LightRed,edgecolor='black',linewidth=.5,s=ScatterSize)
+
+		# ax4.set_xlabel('SWC %',fontsize=self.MinorFont)
+		ax8.set_xlabel('Water Table Depth m',fontsize=self.MinorFont)
+
+		# ax4.set_title('E-D: NEE',fontsize=self.MinorFont)
+		ax8.set_title('E-D: NME',fontsize=self.MajorFont)
+
+
+
+		score = CH4[['fch4',Ach4]].dropna()
+		lra = stats.linregress(score['fch4'].values,score[Ach4].values)
+		score = CH4[['fch4',Bch4]].dropna()
+		lrb = stats.linregress(score['fch4'].values,score[Bch4].values)
+		score = CH4[['fch4',Cch4]].dropna()
+		lrc = stats.linregress(score['fch4'].values,score[Cch4].values)
+		score = CH4[['fch4',Dch4]].dropna()
+		lrd = stats.linregress(score['fch4'].values,score[Dch4].values)
+		score = CH4[['fch4',Ech4]].dropna()
+		lre = stats.linregress(score['fch4'].values,score[Ech4].values)
+		print(lra[2]**2,lrb[2]**2,lrc[2]**2,lrd[2]**2,lre[2]**2)
+
+
+		# ax1.grid()
+		# ax2.grid()
+		# ax3.grid()
+		# ax4.grid()
+
+		self.allfmt(ax5,legend=False)
+		self.allfmt(ax6,legend=False)
+		self.allfmt(ax7,legend=False)
+		self.allfmt(ax8,legend=False)
+
+		# ax5.grid()
+		# ax6.grid()
+		# ax7.grid()
+		# ax8.grid()
+
+
 
 	def CO2(self,ax,fig):
 		# self.fig = fig
@@ -677,13 +820,28 @@ class Results:
 		ax1.plot(self.Daily.index,self.Daily['Fco2_mean'],color='black',label='Mean :'+str(co2Mean) +gCO2+\
 			' 95% CI $\pm$ '+str(co2CI),linewidth=MajorLine)
 
+		# ax1.plot(self.Daily.index,self.Daily['CO2eq_mean']*0+co2Mean+co2CI,color='black',
+		# 	linewidth=MajorLine,linestyle=':')
+		# ax1.plot(self.Daily.index,self.Daily['CO2eq_mean']*0+co2Mean-co2CI,color='black',
+		# 	linewidth=MajorLine,linestyle=':',label = None)
+
 		ax2.bar(self.Daily.index,self.Daily['Fch4'],color = DarkRed,edgecolor='black')
 		ax2.plot(self.Daily.index,self.Daily['Fch4_mean'],color='black',label='Mean :'+str(ch4Mean) +mgCH4+\
 			' 95% CI $\pm$ '+str(ch4CI),linewidth=MajorLine)
+
+		# ax2.plot(self.Daily.index,self.Daily['CO2eq_mean']*0+ch4Mean+ch4CI,color='black',
+		# 	linewidth=MajorLine,linestyle=':')
+		# ax2.plot(self.Daily.index,self.Daily['CO2eq_mean']*0+ch4Mean-ch4CI,color='black',
+		# 	linewidth=MajorLine,linestyle=':',label = None)
 		
 		ax3.bar(self.Daily.index,self.Daily['CO2eq'],color = Gold,edgecolor='black')
 		ax3.plot(self.Daily.index,self.Daily['CO2eq_mean'],color='black',label='Mean :'+str(co2eqMean) +gCO2eq+\
 			' 95% CI $\pm$ '+str(co2eqCI),linewidth=MajorLine)
+
+		# ax3.plot(self.Daily.index,self.Daily['CO2eq_mean']*0+co2eqMean+co2eqCI,color='black',
+		# 	linewidth=MajorLine,linestyle=':')
+		# ax3.plot(self.Daily.index,self.Daily['CO2eq_mean']*0+co2eqMean-co2eqCI,color='black',
+		# 	linewidth=MajorLine,linestyle=':')
 
 
 

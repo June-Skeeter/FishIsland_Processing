@@ -1,0 +1,5 @@
+Using NARR data to run MM5 applications, you need variables at all vertical levels and 
+flux variables at the boundaries. The vertical levels are in the regrouped "3D" files. 
+The flux variables are in the regrouped "flx" and "sfc" files. Since there are many new
+variables, we may adjust our regrouping strategy to minimize the number of files needed
+to run MM5 applications.
