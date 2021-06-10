@@ -18,6 +18,7 @@ class Compile:
         self.Fluxes = ['H','LE','co2_flux','ch4_flux']
         Flux_10 = self.Format(pd.read_csv(Flux_Paths[0],delimiter = ',',skiprows = 0,parse_dates={'datetime':[1,2]},header = 1,na_values = -9999),v=1,drop = [0,1])
         Flux_10 = Flux_10.loc[Flux_10['file_records']==18000]
+#         Flux_10 = Flux_10.loc[Flux_10['file_records']==1800]
         Flux_1 = self.Format(pd.read_csv(Flux_Paths[1],delimiter = ',',skiprows = 0,parse_dates={'datetime':[1,2]},header = 1,na_values = -9999),v=1,drop = [0,1])
         Flux_1 = Flux_1.loc[Flux_1['file_records']==1800]
         Daytime = pd.read_csv(Daytime)
@@ -212,7 +213,8 @@ class Compile:
         self.Data['ch4_flux'] = self.Data['ch4_flux']+self.Data['ch4_strg']
         
     def Signal_Check(self,RSSI_thresh=10,NoSignal_Thresh=.01):
-        self.Data['ch4_noSSFilter'] = self.Data['ch4_flux']
+        self.Data['ch4_noSSFilter'] = self.Data['ch4_flux'].copy()
+        print(self.Data[['ch4_noSSFilter','ch4_flux']].count())
         self.Data.loc[self.Data['rssi_77_mean']<RSSI_thresh,['ch4_flux','ch4_flux_drop']] = [np.nan,1]
         self.Data.loc[self.Data['no_signal_LI-7700']/18000>NoSignal_Thresh,['ch4_flux','ch4_flux_drop']] = [np.nan,1]
     
