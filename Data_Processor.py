@@ -7,22 +7,36 @@ import pytz
 from sklearn.utils import resample
 from sklearn import metrics
 from scipy.optimize import curve_fit
+from scipy import stats
 
 
 
 class Compile:
-    def __init__(self,Flux_Paths,Met,Soil,Taglu=None,NARR=None):
+    def __init__(self,Flux_Paths,Met,Soil,Daytime,Taglu=None,NARR=None,Drop_Variables=None):
         self.Taglu = Taglu
         self.NARR = NARR
         self.Fluxes = ['H','LE','co2_flux','ch4_flux']
         Flux_10 = self.Format(pd.read_csv(Flux_Paths[0],delimiter = ',',skiprows = 0,parse_dates={'datetime':[1,2]},header = 1,na_values = -9999),v=1,drop = [0,1])
+        Flux_10 = Flux_10.loc[Flux_10['file_records']==18000]
         Flux_1 = self.Format(pd.read_csv(Flux_Paths[1],delimiter = ',',skiprows = 0,parse_dates={'datetime':[1,2]},header = 1,na_values = -9999),v=1,drop = [0,1])
+        Flux_1 = Flux_1.loc[Flux_1['file_records']==1800]
+        Daytime = pd.read_csv(Daytime)
+        Daytime=Daytime.set_index(pd.DatetimeIndex(pd.to_datetime(Daytime['Date']))).drop('Date',axis=1)
+
+
+        # self.Format(pd.read_csv(Daytime,delimiter = ',',skiprows=0,parse_dates={'datetime':[0]},header=1),v=0,drop=[0])
         Flux_10['Hz']=10
         Flux_1['Hz'] = 1
         Flux = Flux_1.append(Flux_10)
         Met = self.Format(pd.read_csv(Met,delimiter = ',',skiprows = 1,parse_dates={'datetime':[0]},header = 0),v=2,drop = [0])
         Soil = self.Format(pd.read_csv(Soil,delimiter = ',',skiprows = 0,parse_dates={'datetime':[0]},header = 0),v=0,drop = [0])
-        self.RawData = pd.concat([Flux,Met,Soil],axis = 1, join = 'outer')
+        BL = self.Format(pd.read_csv('C:/FishIsland_2017/BL_Data/PBLH_GFS.csv'),v=0,drop=[0])
+        self.RawData = pd.concat([Flux,Met,Soil,BL],axis = 1, join = 'outer')
+        self.RawData = self.RawData.join(Daytime,how='inner')
+        self.RawData['Daytime'] = np.ceil(self.RawData['Daytime'])
+
+        if Drop_Variables != None:
+            self.RawData = self.RawData.drop(Drop_Variables,axis=1)
 
         self.RawData['Date_Key'] = 0
         for var in self.Fluxes:
@@ -40,6 +54,8 @@ class Compile:
         self.RawData['E']=self.RawData['East']/(self.RawData['North']**2+self.RawData['East']**2)**.5
         self.RawData['Wind_Direction'] = self.RawData['wind_dir']
         self.RawData.loc[self.RawData['wind_dir']>215,'Wind_Direction'] -= 360
+        self.RawData.loc[self.RawData['flowrate_mean']<0.0002,'co2_flux'] = np.nan
+        self.Data=self.RawData.copy()
         
     def Format(self,df,v,drop):
         df = df.iloc[v:]
@@ -47,21 +63,23 @@ class Compile:
         df.datetime = df.index
         df.datetime = df.datetime.apply(lambda dt: datetime.datetime(dt.year, dt.month, dt.day, dt.hour,30*(dt.minute // 30)))
         df = df.set_index(pd.DatetimeIndex(df.datetime))
+        # if drop
         df = df.drop(df.columns[drop],axis=1)
         df = df.astype(float)
         return(df)
     
-    def Date_Drop(self,Date,Vars):
-        if Vars == 'All':
-            self.RawData = self.RawData.drop(self.RawData.loc[(self.RawData.index>Date[0])&(self.RawData.index<Date[1])].index)
-        else:
-            self.RawData.loc[(self.RawData.index>Date[0])&(self.RawData.index<Date[1]),[Vars]]=np.nan
-        self.Data=self.RawData.copy()
+    def Date_Drop(self,Dates,start):
+        for Date in Dates:
+            self.Data.loc[(self.Data.index>=Date[0])&(self.Data.index<=Date[1]),self.Fluxes]=np.nan
+        # Others = self.Data.loc[((np.isnan(self.Data['PPFD_Avg'])==True)&(np.isnan(self.Data['file_records'])==True))].index.values
+        # for O in Others:
+        self.Data = self.Data.drop(self.Data.loc[self.Data.index.tz_localize(None)<start].index)
+        # self.Data=self.RawData.copy()
 
-    def Date_Key(self,Date,key):
-        self.Data.loc[(self.Data.index>Date[0])&(self.Data.index<Date[1]),'Date_Key'] = key
-        # self.Data['biWeek'] = int(self.Data.index.week.values/2)
-        self.Data['Month'] = self.Data.index.month
+    # def Date_Key(self,Date,key):
+    #     self.Data.loc[(self.Data.index>Date[0])&(self.Data.index<Date[1]),'Date_Key'] = key
+    #     # self.Data['biWeek'] = int(self.Data.index.week.values/2)
+    #     self.Data['Month'] = self.Data.index.month
         
             
     def Wind_Bins(self,Bins):
@@ -93,7 +111,7 @@ class Compile:
 
         Grp = self.uFilterData.groupby(['u*bin']).mean()
         GrpC = self.uFilterData.groupby(['u*bin']).size()
-        GrpSE = self.uFilterData.groupby(['u*bin'])['fco2'].std()/(GrpC)**.5
+        GrpSE = self.uFilterData.groupby(['u*bin'])['co2_flux'].std()/(GrpC)**.5
         self.uThresh_SampSize = GrpC.sum()
         
         self.uThresh = Rcalc(Grp)
@@ -112,9 +130,9 @@ class Compile:
         self.Pct = {'5%':np.percentile(Ge,[5]),'50%':np.percentile(Ge,[50]),'95%':np.percentile(Ge,[95])}
         self.uThresh = Ge.mean()
         if uFilter['Plot'] == True:
-            plt.figure(figsize=(6,5))
+            # plt.figure(figsize=(6,5))
             # plt.errorbar(Grp['u*'],Grp[uFilter['Var']],yerr=GrpSE,label = 'Mean +- 1SE')
-            plt.hist(Ge,bins=30,density=True)
+            # plt.hist(Ge,bins=30,density=True)
             ymin, ymax = plt.ylim()
             def Vlines(var,c,l):
                 plt.plot([var,var],[ymin,ymax],
@@ -135,7 +153,7 @@ class Compile:
         self.Data['Photon_Flux'] = pd.cut(self.Data['PPFD_Avg'],bins=self.bins,labels = (self.bins[0:-1]+self.bins[1:])/2)
 
     def Rain_Check(self,thresh):
-        self.Data['Rain_diff'] = self.Data['Rain_mm_Tot'].diff()
+        # self.Data['Rain_diff'] = self.Data['Rain_mm_Tot'].diff()
         for var in self.Fluxes:
             if var!='ch4_flux':
                 self.Data.loc[self.Data['Rain_mm_Tot']>thresh[0],[var,var+'_drop']]=[np.nan,1]
@@ -165,43 +183,62 @@ class Compile:
         
         if AltData == None and var == None:
             for var in self.Fluxes:
+                self.Data[var+'_PrSpk'] = self.Data[var].copy()
+                # Temp = self.Data.loc[self.Data.daytime<1,var]
+                # Temp = Remove(Temp.dropna())
+                # self.Data.loc[self.Data.daytime<1,var] = Temp
+
+                # Temp = self.Data.loc[self.Data.daytime>0,var]
+                # Temp = Remove(Temp.dropna())
+                # self.Data.loc[self.Data.daytime>0,var] = Temp
                 self.Data[var]=Remove(self.Data[var].dropna())
         elif AltData == None:
 #             for var in self.Fluxes:
+            self.Data[var+'_PrSpk'] = self.Data[var].copy()
             self.Data[var]=Remove(self.Data[var].dropna())
         else:
+            Data[var+'_PrSpk'] = self.Data[var].copy()
             AltData[var]=Remove(self.AltData[var].dropna())
             return(AltData[0])
         
-    def Wind_Filter(self,width):
+    def Wind_Filter(self,width,angle):
         for var in self.Fluxes:
-            self.Data.loc[((self.Data['wind_dir']>215-width)&(self.Data['wind_dir']<215+width)),[var,var+'_drop']]=[np.nan,1]
+            self.Data.loc[((self.Data['wind_dir']>angle-width)&(self.Data['wind_dir']<angle+width)),[var,var+'_drop']]=[np.nan,1]
         
     def StorageCorrection(self,Raw=True):
-        if Raw == False:
-            self.Data['fco2'] = self.Data['co2_flux']+self.Data['co2_strg']
-            self.Data['fch4'] = self.Data['ch4_flux']+self.Data['ch4_strg']
-        else:
-            self.Data['fco2'] = self.Data['co2_flux']+self.Data['co2_strg']
-            self.Data['fch4'] = self.Data['ch4_flux']+self.Data['ch4_strg']
+        self.Data['co2_raw'] = self.Data['co2_flux']+0.0
+        self.Data['ch4_raw'] = self.Data['ch4_flux']+0.0
+        self.Data['co2_flux'] = self.Data['co2_flux']+self.Data['co2_strg']
+        self.Data['ch4_flux'] = self.Data['ch4_flux']+self.Data['ch4_strg']
         
-    def Signal_Check(self,thresh):
+    def Signal_Check(self,RSSI_thresh=10,NoSignal_Thresh=.01):
         self.Data['ch4_noSSFilter'] = self.Data['ch4_flux']
-        self.Data.loc[self.Data['rssi_77_mean']<thresh,['ch4_flux','ch4_flux_drop']] = [np.nan,1]
+        self.Data.loc[self.Data['rssi_77_mean']<RSSI_thresh,['ch4_flux','ch4_flux_drop']] = [np.nan,1]
+        self.Data.loc[self.Data['no_signal_LI-7700']/18000>NoSignal_Thresh,['ch4_flux','ch4_flux_drop']] = [np.nan,1]
     
     def QC_Check(self,thresh):
         for var in self.Fluxes:
+            self.Data[var+'_PrQC'] = self.Data[var].copy()
             self.Data.loc[self.Data['qc_'+var]>=thresh,[var,var+'_drop']]=[np.nan,1]
             self.Data.loc[np.isnan(self.Data[var]) == True,[var+'_drop']]=1
             
-    def Ustar_Drop(self,Override=None):
+    def Ustar_Drop(self,Override=None,Drop=.25):
+        Temp = self.Data[['u*','wind_speed']].dropna()
+        y = Temp['u*']#np.random.random(10)
+        x = Temp['wind_speed']#np.random.random(10)
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+        self.Data.loc[self.Data['u*']>self.Data['wind_speed']*slope+intercept+Drop,'u*']=np.nan
+
+
         if Override != None:
             self.uThresh = Override
         for var in self.Fluxes:
+            self.Data[var+'_Pru*'] = self.Data[var].copy()
             self.Data.loc[self.Data['u*']<self.uThresh,[var,var+'_drop']]=[np.nan,1]
-            self.Data.loc[((self.Data['u*']/self.Data['wind_speed']>(self.Data['u*']/self.Data['wind_speed']).quantile(.99))&\
-         (self.Data['u*']>self.uThresh)),['u*',var,var+'_drop']]=[np.nan,np.nan,1]
-        self.StorageCorrection(Raw=False)
+            self.Data.loc[np.isnan(self.Data['u*'])==True,[var,var+'_drop']]=[np.nan,1]
+         #    self.Data.loc[((self.Data['u*']/self.Data['wind_speed']>(self.Data['u*']/self.Data['wind_speed']).quantile(.99))&\
+         # (self.Data['u*']>self.uThresh)),['u*',var,var+'_drop']]=[np.nan,np.nan,1]
+        # self.StorageCorrection(Raw=False)
         
     def CustomVars(self,Hours=24):
         self.Data['Total_Rain_mm_Tot'] = self.Data['Rain_mm_Tot'].rolling(str(Hours)+'H').sum()
@@ -212,6 +249,12 @@ class Compile:
         self.Data['Delta_Table_1'] = self.Data['Table_1'].rolling(str(Hours)+'H').mean()-self.Data['Table_1']
         self.Data['Delta_VWC_1'] = self.Data['VWC_1'].rolling(str(Hours)+'H').mean()-self.Data['VWC_1']
         self.Data['Delta_VWC_2'] = self.Data['VWC_2'].rolling(str(Hours)+'H').mean()-self.Data['VWC_2']
+
+        self.Data['fco2']=self.Data['co2_flux']
+        self.Data['fch4']=self.Data['ch4_flux']
+        self.Data['DOY'] = self.Data.index.dayofyear
+        self.Data['ER'] = self.Data['co2_flux']
+        self.Data.loc[self.Data['Daytime']>0,'ER']=np.nan
         # self.Data['Delta_air_pressure'] = self.Data['air_pressure'].rolling(str(Hours)+'H').mean()-self.Data['air_pressure']
         try:
             self.Data['Total_Rainfall_Tot'] = self.Data['Rainfall_Tot'].rolling(str(Hours)+'H').sum()
@@ -222,86 +265,13 @@ class Compile:
             self.Data['Delta_SoilMoist(5)'] = self.Data['SoilMoist(5)'].diff(Hours)
         except:
             pass
-        self.Data['Delta_Temp_1'] = (self.Data['Temp_5_1']-self.Data['Temp_15_1'])/10
-        self.Data['Delta_Temp_2'] = (self.Data['Temp_5_2']-self.Data['Temp_15_2'])/10
-        self.Data['Delta_Temp_3'] = (self.Data['Temp_5_1']-self.Data['Temp_5_2'])
-        self.Data['Rolling_NR_Wm2_Avg']=self.Data['NR_Wm2_Avg'].rolling(str(Hours)+'H').mean()
-        self.Data['CumSum_NR_Wm2_Avg']=self.Data['NR_Wm2_Avg'].cumsum()
-        self.Data['Rolling_PPFD_Avg']=self.Data['PPFD_Avg'].rolling(str(Hours)+'H').sum()
-        self.Data['Shift_PPFD_Avg']=self.Data['PPFD_Avg'].shift(2)
-        self.Data['Rolling_Temp_5_1']=self.Data['Temp_5_1'].rolling(str(Hours)+'H').mean()
-        self.Data['Rolling_Temp_5_2']=self.Data['Temp_5_2'].rolling(str(Hours)+'H').mean()
-        self.Data['Rolling_Temp_15_1']=self.Data['Temp_15_1'].rolling(str(Hours)+'H').mean()
-        self.Data['Rolling_Temp_15_2']=self.Data['Temp_15_2'].rolling(str(Hours)+'H').mean()
-        self.Data['Time'] = self.Data.index.hour
-        self.Data['Time'] -=3
-        self.Data.loc[self.Data['Time'] <=0,'Time']+=24 
-        self.Data['DOY'] = self.Data.index.dayofyear
-        self.Data['Anoxic_Depth']=self.Data['Active_Layer_1']+self.Data['Table_1']
-#         
-    def LTR(self,X,alpha,beta,theta,r10,q10):#r1,r2,r3):
-            PPFD,temp = X
-            return(-1/2*theta*(alpha*PPFD+beta-((alpha*PPFD+beta)**2-4*alpha*beta*theta*PPFD)**.5)+\
-                   r10*q10**((temp-10)/10))#(1/(r1*r2**temp+r3)))
-
-    def GPP_ER(self,X,alpha,beta,theta,r10,q10):#r1,r2,r3):
-            PPFD,temp = X
-            ER = r10*q10**((temp-10)/10)
-            GPP = -1/2*theta*(alpha*PPFD+beta-((alpha*PPFD+beta)**2-4*alpha*beta*theta*PPFD)**.5)
-            return(ER,GPP)
-
-    def Hyperbola(self,PPFD,alpha,beta):
-        return((alpha*beta*PPFD)/(alpha*PPFD+beta))
-
-    # def ER(self,Temp,r10,q10):
-    #     return(r10*q10**((Temp-10)/10))
-
-    def ER(self,Temp,r1,r2,r3):
-        return(1/(r2*r2**Temp+r3))
-        
-
-    def Fco2_Fill(self,PPFD,Temp,p0 =(0.00699139,  3.08946606,  0.83363605,  0.57199121,  2.01299858)):#,p0 =(0.07456007,30.82786468,0.32274278,0.63617274,1.68500993)):# (0.00716274,1.52597427,1,0.5,0.01)):
-        self.Data['NEE'] = np.nan
-        # self.Data['NEE2'] = np.nan
-        # self.Data['ER2'] = np.nan
-        self.Data['ER'] = np.nan
-        # self.Data['GPP2'] = np.nan
-        self.Data['GPP'] = np.nan
-
-        Dataset = self.Data[['fco2',PPFD,Temp,'Date_Key','Month']].dropna()
-        Filler = self.Data[[PPFD,Temp,'Date_Key','Month']].dropna()
-        self.popts = {}
-        self.popts2 = {}
-        Key = 'Month'
-        popt=p0
-
-        for i in Dataset[Key].unique():
-            # print(i)
-            Data = Dataset[Dataset[Key]==i].copy()
-            FillData = Filler[Filler[Key]==i].copy()
-            popt, pcov = curve_fit(self.LTR, (Data[PPFD].values,Data[Temp].values,),
-                           Data['fco2'].values,p0=popt)
-            # if i == 9:
-            #     popt[1] = 0.888041808316
-            self.popts[str(i)]=popt
-            FillData['NEE'] = self.LTR((FillData[PPFD],FillData[Temp]),popt[0],popt[1],popt[2],popt[3],popt[4])
-            FillData['ER'],FillData['GPP'] = self.GPP_ER((FillData[PPFD],FillData[Temp]),popt[0],popt[1],popt[2],popt[3],popt[4])
-            # plt.figure(figsize=(5,5))
-            # plt.scatter(Data['Filler'],Data['fco2'])
-            self.Data.loc[self.Data[Key]==i,'NEE'] = FillData['NEE']
-            self.Data.loc[self.Data[Key]==i,'ER'] = FillData['ER']
-            self.Data.loc[self.Data[Key]==i,'GPP'] = FillData['GPP']
-
-        self.Data['Fco2'] = self.Data['fco2'].fillna(self.Data['NEE'])
-        # plt.figure(figsize=(5,5))
-        # plt.scatter(self.Data['Filler'],self.Data['fco2'])
 
     def Soil_Data_Avg(self,ratios=[.8,.2]):
         self.Data['Ts 2.5cm'] = self.Data['Temp_2_5_1']*ratios[0]+self.Data['Temp_2_5_2']*ratios[1]
         self.Data['Ts 5cm'] = self.Data['Temp_5_1']*ratios[0]+self.Data['Temp_5_2']*ratios[1]
         self.Data['Ts 15cm'] = self.Data['Temp_15_1']*ratios[0]+self.Data['Temp_15_2']*ratios[1]
 
-    def Merge(self,Root,Vars,Aliases):
+    def Merge(self):#,Vars,Aliases):
         # self.Data[Aliases]=self.Data[Vars]
 
         if self.Taglu is not None:
@@ -342,29 +312,29 @@ class Compile:
                 self.Data = pd.concat([self.Data,self.dfNARR],axis=1,join='inner')
 
             # self.AllData.resample('3h').mean().to_csv('C:/Users/wesle/NetworkAnalysis/FishIsland/FullDataset.csv')
-            self.VWC_Calc()
+            # self.VWC_Calc()
 
-    def VWC_Calc(self):
-        def Curve(p,a,b,c,d):
-            return(a*p**3+b*p**2+c*p**1+d)
+    # def VWC_Calc(self):
+    #     def Curve(p,a,b,c,d):
+    #         return(a*p**3+b*p**2+c*p**1+d)
 
-        for p,sm in zip(('1','2'),('1','4')):
-            P = 'Period_'+p
-            SM = 'SoilMoist('+sm+')'
-            # print(self.Data.columns)
+    #     for p,sm in zip(('1','2'),('1','4')):
+    #         P = 'Period_'+p
+    #         SM = 'SoilMoist('+sm+')'
+    #         # print(self.Data.columns)
 
-            Temp = self.Data.loc[((np.isnan(self.Data[P])==False)&(np.isnan(self.Data[SM])==False))]
-            popt_r, pcov = curve_fit(Curve,Temp[P],Temp[SM])
-            print('VWC!!!')
+    #         Temp = self.Data.loc[((np.isnan(self.Data[P])==False)&(np.isnan(self.Data[SM])==False))]
+    #         popt_r, pcov = curve_fit(Curve,Temp[P],Temp[SM])
+    #         print('VWC!!!')
 
-            print(metrics.r2_score(Temp[SM],Curve(Temp[P],*popt_r)))
-            # print(popt_r)
-            # plt.figure()
-            # plt.plot(Curve(Data[P],*popt_r),c='g')
-            # plt.plot(Data[SM],c='k')
-            self.Data['VWC_'+p]=Curve(self.Data[P],*popt_r)
+    #         print(metrics.r2_score(Temp[SM],Curve(Temp[P],*popt_r)))
+    #         # print(popt_r)
+    #         # plt.figure()
+    #         # plt.plot(Curve(Data[P],*popt_r),c='g')
+    #         # plt.plot(Data[SM],c='k')
+    #         self.Data['VWC_'+p]=Curve(self.Data[P],*popt_r)
 
-            self.AllData['VWC_'+p]=Curve(self.AllData[P],*popt_r)
+    #         self.AllData['VWC_'+p]=Curve(self.AllData[P],*popt_r)
 
 
         # self.Data[Aliases].to_csv(Root+'FilteredData' +str(datetime.datetime.now()).split(' ')[0]+'.csv')

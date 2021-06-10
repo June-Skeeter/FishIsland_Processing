@@ -26,11 +26,12 @@ from Klujn_2015_FootprinModel.calc_footprint_FFP_climatology_SkeeterEdits import
 
 class Calculate(object):
 	"""docstring for Calculate"""
-	def __init__(self,out_dir,Data,Domain,XY,params=None,Classes=None,nx=1000,dx=1,rs=[.50,.75,.90],ax=None):
+	def __init__(self,out_dir,Data,Domain,XY,params=None,Classes=None,nx=1000,dx=1,rs=[.50,.75,.90],ax=None,OtherClass = 'Other'):
 		super(Calculate, self).__init__()
 		self.rs=rs
 		self.ax=ax
 		self.Classes=Classes
+		self.OtherClass = OtherClass
 		self.out_dir=out_dir
 		self.Runs = Data.shape[0]
 		self.Data = Data
@@ -45,7 +46,7 @@ class Calculate(object):
 			self.Intersections = self.Data[['datetime']].copy()
 			for name in self.Classes['Class']:
 				self.Intersections[name]=0.0
-			self.Intersections['Other'] = 0.0
+			self.Intersections[self.OtherClass] = 0.0
 		self.run()
 
 	def run(self):
@@ -90,7 +91,7 @@ class Calculate(object):
 			
 			# print(self.Intersections.iloc[self.i][Name])
 			Sum+=Contribution
-			self.Intersections.loc[self.Intersections.index==self.i,'Other'] = 1.0 - Sum
+			self.Intersections.loc[self.Intersections.index==self.i,self.OtherClass] = 1.0 - Sum
 		# print(self.Intersections)
 
 class Contours(object):
@@ -171,8 +172,8 @@ class Contours(object):
 					# print(shp)
 					Poly = shape(shp)
 					# print(Poly)
-					# Poly = Poly.buffer(dx, join_style=1).buffer(-dx, join_style=1)
-					# Poly = Poly.buffer(-dx, join_style=1).buffer(dx, join_style=1)
+					Poly = Poly.buffer(dx, join_style=1).buffer(-dx, join_style=1)
+					Poly = Poly.buffer(-dx, join_style=1).buffer(dx, join_style=1)
 					if Poly.is_empty == False:
 						if multipart == 'No':
 							geometry.append(Poly)
@@ -189,6 +190,7 @@ class Contours(object):
 
 		geo_df = gpd.GeoDataFrame(df,crs={'init': 'EPSG:32608'},geometry = geometry)
 		geo_df['area'] =  geo_df.area 
+		print(geo_df) 
 		geo_df.to_file(self.RasterPath+'Contours/'+self.job+'.shp', driver = 'ESRI Shapefile')
 		if self.ax is not None:
 			if self.PlotStyle == 'Comparrison':
@@ -204,5 +206,6 @@ class Contours(object):
 
 		else:
 			geo_df.plot(facecolor='None',edgecolor=np.random.rand(3,),label = self.job)
+
 
 		
