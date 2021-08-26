@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from datetime import timedelta
-import datetime
+from datetime import timedelta,datetime
+# import datetime
 import pytz
 from sklearn.utils import resample
 from sklearn import metrics
@@ -62,7 +62,7 @@ class Compile:
         df = df.iloc[v:]
         df = df.set_index(pd.DatetimeIndex(df.datetime))
         df.datetime = df.index
-        df.datetime = df.datetime.apply(lambda dt: datetime.datetime(dt.year, dt.month, dt.day, dt.hour,30*(dt.minute // 30)))
+        df.datetime = df.datetime.apply(lambda dt: datetime(dt.year, dt.month, dt.day, dt.hour,30*(dt.minute // 30)))
         df = df.set_index(pd.DatetimeIndex(df.datetime))
         # if drop
         df = df.drop(df.columns[drop],axis=1)
@@ -258,15 +258,15 @@ class Compile:
         self.Data['ER'] = self.Data['co2_flux']
         self.Data.loc[self.Data['Daytime']>0,'ER']=np.nan
         # self.Data['Delta_air_pressure'] = self.Data['air_pressure'].rolling(str(Hours)+'H').mean()-self.Data['air_pressure']
-        try:
-            self.Data['Total_Rainfall_Tot'] = self.Data['Rainfall_Tot'].rolling(str(Hours)+'H').sum()
-            self.Data['Delta_SoilMoist(1)'] = self.Data['SoilMoist(1)'].diff(Hours)
-            self.Data['Delta_SoilMoist(2)'] = self.Data['SoilMoist(2)'].diff(Hours)
-            self.Data['Delta_SoilMoist(3)'] = self.Data['SoilMoist(3)'].diff(Hours)
-            self.Data['Delta_SoilMoist(4)'] = self.Data['SoilMoist(4)'].diff(Hours)
-            self.Data['Delta_SoilMoist(5)'] = self.Data['SoilMoist(5)'].diff(Hours)
-        except:
-            pass
+        # try:
+        #     self.Data['Total_Rainfall_Tot'] = self.Data['Rainfall_Tot'].rolling(str(Hours)+'H').sum()
+        #     self.Data['Delta_SoilMoist(1)'] = self.Data['SoilMoist(1)'].diff(Hours)
+        #     self.Data['Delta_SoilMoist(2)'] = self.Data['SoilMoist(2)'].diff(Hours)
+        #     self.Data['Delta_SoilMoist(3)'] = self.Data['SoilMoist(3)'].diff(Hours)
+        #     self.Data['Delta_SoilMoist(4)'] = self.Data['SoilMoist(4)'].diff(Hours)
+        #     self.Data['Delta_SoilMoist(5)'] = self.Data['SoilMoist(5)'].diff(Hours)
+        # except:
+        #     pass
 
     def Soil_Data_Avg(self,ratios=[.8,.2]):
         self.Data['Ts 2.5cm'] = self.Data['Temp_2_5_1']*ratios[0]+self.Data['Temp_2_5_2']*ratios[1]
@@ -277,10 +277,19 @@ class Compile:
         # self.Data[Aliases]=self.Data[Vars]
 
         if self.Taglu is not None:
-            self.dfTaglu = pd.read_csv(self.Taglu,parse_dates=['datetime'],index_col=['datetime'])
+            # def parse(Y,m,d,H):
+            #     return datetime.datetime.strptime(f"{Y} {m} {d} {H}", "%Y %m %d %H")
+            self.dfTaglu = pd.read_csv(self.Taglu,#header=True,
+                parse_dates={'datetime':['Year','Month','Day','Time']}, 
+                 # date_parser=lambda x: pd.datetime.strptime(x, '%Y %m %d %H'),index_col=['datetime']
+                 ).set_index('datetime')
+            self.dfTaglu.index+=pd.to_timedelta(1, unit='h')
 
-            for V in ['SoilMoist(1)','SoilMoist(2)','SoilMoist(3)','SoilMoist(4)','SoilMoist(5)','SoilMoist(6)']:
-                self.dfTaglu[V]=pd.to_numeric(self.dfTaglu[V])
+            # self.dfTaglu = self.dfTaglu.apply(lambda dt: datetime(dt.year, dt.month, dt.day, dt.hour,30*(dt.minute // 30)))
+            # self.dfTaglu.datetime = self.dfTaglu.set_index(pd.DatetimeIndex(pd.to_datetime(self.dfTaglu['datetime'])))
+            print(self.dfTaglu)
+            # for V in ['SoilMoist(1)','SoilMoist(2)','SoilMoist(3)','SoilMoist(4)','SoilMoist(5)','SoilMoist(6)']:
+            #     self.dfTaglu[V]=pd.to_numeric(self.dfTaglu[V])
 
             UTC = self.dfTaglu.index+timedelta(hours=6)
             self.dfTaglu = self.dfTaglu.set_index(UTC)
@@ -292,9 +301,10 @@ class Compile:
             # self.dfTaglu=self.dfTaglu.reset_index()
             # self.dfTaglu = self.dfTaglu.set_index(self.dfTaglu['MT'])
             self.dfTagluI=self.dfTaglu.resample('30T').interpolate()
-            self.dfTagluI['Rainfall_Tot']=self.dfTaglu['Rainfall_Tot'].resample('30T').asfreq().fillna(0)
-            self.Data_DS = self.Data.resample('h').mean()
-            self.Data_DS['Rain_mm_Tot'] = self.Data.resample('h').sum()['Rain_mm_Tot']
+            self.dfTagluI['Rainfall']=self.dfTaglu['Rainfall'].resample('30T').asfreq().fillna(0)
+            Side = 'right'
+            self.Data_DS = self.Data.resample('h',label=Side, closed='right').mean()
+            self.Data_DS['Rain_mm_Tot'] = self.Data.resample('h',label=Side, closed='right').sum()['Rain_mm_Tot']
             self.AllData = pd.concat([self.Data_DS,self.dfTaglu],axis=1,join='outer')
             self.Data = pd.concat([self.Data,self.dfTagluI],axis=1,join='inner')
 
