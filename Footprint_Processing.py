@@ -36,6 +36,7 @@ class Calculate(object):
 		self.Runs = Data.shape[0]
 		self.Data = Data
 		self.raster_params=params
+		self.raster_params['dx']=dx
 		with rasterio.open(Domain,'r',**params) as self.Domain:
 			# self.raster_params = self.Domain.profile
 			# del self.raster_params['transform']    ### Transfrorms will become irelivant in rio 1.0 - gets rid of future warning
@@ -63,9 +64,13 @@ class Calculate(object):
 				self.Sum = self.fpf
 			else:
 				self.Sum+= self.fpf
-			self.Prog.Update(i)
+			if i >1:
+				self.Prog.Update(i)
 			with rasterio.open(self.out_dir+'30min/'+str(Name)+'.tif','w',**self.raster_params) as out:
 				out.write(self.fpf,1)
+				# out.write(self.fpf*0,2)
+				# out.write(self.fpf*0,3)
+				# out.write(self.fpf,4)
 		self.Sum/=i+1
 		# print(nx,dx)
 
@@ -106,7 +111,7 @@ class Contours(object):
 		self.PlotStyle=PlotStyle
 		if Sum is not None:
 			self.Sum = Sum
-			self.job = 'Climatology'
+			self.job = 'Climatology_'+str(int(self.raster_params['dx']))+'m'
 			self.Write_Contour()
 		elif Jobs is not None:
 			self.Jobs = Jobs
